@@ -10,6 +10,9 @@ tags:
 
 This document covers best practices, recommended plugins, and workflows for effective use of OpenCode Chat.
 
+> **Want a ready-made vault setup with templates, rules, and Bedrock configuration?**
+> See **[opencode-obsidian-ai-workspace](https://github.com/rho-sk/opencode-obsidian-ai-workspace)** – a complete setup ready to use.
+
 **Related docs:**
 - [[00-introduction]] – Introduction and overview
 - [[01-installation]] – Installation guide

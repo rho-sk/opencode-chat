@@ -1,5 +1,6 @@
 ---
 created: '2026-02-28'
+updated: '2026-03-01'
 tags:
   - type/reference
   - project/opencode-chat
@@ -9,13 +10,18 @@ tags:
 
 ## Čo je OpenCode Chat?
 
-OpenCode Chat je Obsidian plugin, ktorý ti umožňuje komunikovať s **AI agentom priamo z tvojho vaultu**. Agent má prístup k tvojim poznámkám a môže ti pomôcť s ich správou, organizáciou a tvorbou obsahu.
+OpenCode Chat je Obsidian plugin, ktorý ti umožňuje komunikovať s **AI agentom priamo z tvojho vaultu**. Agent má prístup k tvojim poznámkam a môže ti pomôcť s ich správou, organizáciou a tvorbou obsahu.
+
+Plugin je **provider-agnostický** – funguje s akýmkoľvek LLM providerom, ktorý OpenCode podporuje (Amazon Bedrock, Ollama, Anthropic API, OpenAI a ďalšie). Povinnou súčasťou je **MCP prístup k vaultu** cez `mcp-obsidian`.
+
+> **Chceš konkrétny setup s Amazon Bedrock + vault guidelines?**
+> Pozri projekt **[opencode-obsidian-ai-workspace](https://github.com/rho-sk/opencode-obsidian-ai-workspace)** – obsahuje kompletný Bedrock setup, system rules a templates.
 
 ---
 
 ## Prečo OpenCode Chat?
 
-### 🔒 Data Privacy na prvom mieste
+### Vault zostáva lokálny – vždy
 
 Na rozdiel od tradičných AI chatbotov (ChatGPT, Claude web), kde tvoje dáta putujú na cudzie servery, **OpenCode Chat beží lokálne na tvojom počítači**.
 
@@ -24,20 +30,24 @@ Na rozdiel od tradičných AI chatbotov (ChatGPT, Claude web), kde tvoje dáta p
 - ✅ **Vault zostáva na tvojom PC** – súbory sa nikdy nenahrávajú do cloudu
 - ✅ **Lokálny server** – OpenCode beží na `localhost`, nie na verejnom internete
 - ✅ **Kontrola nad dátami** – len ty rozhoduješ, ktoré poznámky zdieľaš s agentom
-- ✅ **GDPR compliant** – Amazon Bedrock EU región (`eu-central-1`)
-- ✅ **Žiadne logovanie** – AWS Bedrock neukladá tvoje prompty ani odpovede
 - ✅ **Audit trail** – vieš presne, ktoré nástroje agent použil (v chat histórii)
+
+**Čo ide cez internet závisí od zvoleného LLM providera:**
+- **Amazon Bedrock** – GDPR compliant, EU región, žiadne logovanie *(odporúčané pre súkromie)*
+- **Ollama** – plne offline, žiadny internet
+- **Anthropic API / OpenAI** – dáta idú cez ich servery (skontroluj ich podmienky)
 
 ### Porovnanie s alternatívami
 
 | Vlastnosť | OpenCode Chat | ChatGPT web | Claude web | BMO Chatbot |
 |---|---|---|---|---|
 | **Lokálny vault prístup** | ✅ Priamy cez MCP | ❌ Nie | ❌ Nie | ✅ Cez API |
-| **Data privacy** | ✅ Lokálny server | ❌ Cloud | ❌ Cloud | ⚠️ Závisí od LLM |
+| **Vault súbory zostávajú lokálne** | ✅ Vždy | ❌ Cloud | ❌ Cloud | ✅ Áno |
+| **Voľba LLM providera** | ✅ Ľubovoľný | ❌ OpenAI | ❌ Anthropic | ⚠️ Obmedzené |
 | **Offline prístup k vaultu** | ✅ Áno | ❌ Nie | ❌ Nie | ✅ Áno |
 | **Streaming odpovede** | ✅ SSE real-time | ✅ Áno | ✅ Áno | ❌ Nie |
 | **Obsidian integrácia** | ✅ Natívny plugin | ❌ Nie | ❌ Nie | ✅ Plugin |
-| **Náklady** | 💰 $5-10/mesiac | 💰 $20/mesiac | 💰 $20/mesiac | 💰 Závisí |
+| **Náklady** | 💰 Závisí od providera | 💰 $20/mesiac | 💰 $20/mesiac | 💰 Závisí |
 
 ---
 
@@ -84,23 +94,23 @@ Na rozdiel od tradičných AI chatbotov (ChatGPT, Claude web), kde tvoje dáta p
 
 ```
 ┌─────────────────────────────┐
-│   Obsidian Desktop         │  ← Ty píšeš poznámky
-│   ┌─────────────────────┐  │
-│   │ OpenCode Chat Plugin│  │  ← Chat rozhranie
-│   └──────────┬──────────┘  │
-└──────────────┼──────────────┘
+│   Obsidian Desktop          │  ← Ty píšeš poznámky
+│   ┌─────────────────────┐   │
+│   │ OpenCode Chat Plugin│   │  ← Chat rozhranie
+│   └──────────┬──────────┘   │
+└──────────────┼───────────────┘
                │ HTTP API (localhost:4096)
                ▼
 ┌──────────────────────────────┐
 │  OpenCode Server (lokálne)  │  ← AI agent engine
 └──────────────┬───────────────┘
-               │ AWS Bedrock API
+               │ LLM Provider API (konfigurovateľné)
                ▼
 ┌──────────────────────────────┐
-│  Amazon Bedrock (EU)         │  ← Claude 3.5 Sonnet/Haiku
-│  (GDPR, no data storage)     │
+│  LLM Provider                │  ← napr. Amazon Bedrock, Ollama,
+│                              │      Anthropic API, OpenAI, ...
 └──────────────┬───────────────┘
-               │ MCP Protocol
+               │ MCP Protocol (povinné)
                ▼
 ┌──────────────────────────────┐
 │  mcp-obsidian                │  ← Prístup k vault súborom
@@ -117,8 +127,8 @@ Na rozdiel od tradičných AI chatbotov (ChatGPT, Claude web), kde tvoje dáta p
 
 - **OpenCode** beží na tvojom počítači (nie cloud)
 - **mcp-obsidian** číta vault priamo z filesystému (žiadny HTTP server)
-- **Amazon Bedrock** je len LLM provider (stateless API, žiadne logovanie)
 - **Vault súbory** nikdy neopúšťajú tvoj PC
+- **LLM provider** je voliteľný – zmenou konfigurácie môžeš prepnúť na iný
 
 ---
 
@@ -129,7 +139,7 @@ Na rozdiel od tradičných AI chatbotov (ChatGPT, Claude web), kde tvoje dáta p
 - **Obsidian** (desktop aplikácia) – https://obsidian.md
 - **Node.js 20+** – pre OpenCode a mcp-obsidian
 - **OpenCode** – AI agent platform
-- **AWS účet** – pre Amazon Bedrock API
+- **LLM provider** – AWS účet (Bedrock), alebo Ollama pre offline, alebo iné
 
 ### Technické znalosti
 
@@ -150,64 +160,44 @@ Na rozdiel od tradičných AI chatbotov (ChatGPT, Claude web), kde tvoje dáta p
 
 ## Náklady
 
-### Amazon Bedrock pricing (približne)
+Závisí od zvoleného LLM providera:
 
-| Model | Input ($/1M tokenov) | Output ($/1M tokenov) | Odporúčané pre |
-|---|---|---|---|
-| **Claude 3.5 Sonnet v2** | $3 | $15 | Komplexné úlohy, kód, analýza |
-| **Claude 3.5 Haiku** | $1 | $5 | Jednoduché otázky, vyhľadávanie |
-
-**Reálne použitie:**
-
-- 100-200 správ denne (mix Sonnet + Haiku): **~$5-10 / mesiac**
-- Power user (500+ správ denne): **~$20-30 / mesiac**
-
-**Tip:** Použi Haiku pre jednoduché úlohy (vyhľadávanie, tagovanie) a Sonnet pre komplexné (generovanie obsahu, refaktoring).
+| Provider | Náklady | Poznámka |
+|---|---|---|
+| **Amazon Bedrock** | ~$5-10/mesiac | Odporúčané – privacy, GDPR, EU región |
+| **Ollama** | Zadarmo | Plne offline, slabší výkon, vyššie HW nároky |
+| **Anthropic API** | ~$5-15/mesiac | Priamy Anthropic účet |
+| **OpenAI API** | ~$5-20/mesiac | GPT modely |
 
 ---
 
 ## Bezpečnosť a súkromie
 
-### Čo zostáva lokálne?
+### Čo zostáva lokálne vždy (bez ohľadu na provider):
 
-✅ **Všetky vault súbory** – nikdy sa nenahrávajú do cloudu  
-✅ **OpenCode konfigurácia** – uložená lokálne  
-✅ **Chat história** – uložená v OpenCode session DB (lokálne)  
-✅ **AWS credentials** – uložené v `~/.aws/credentials` (file permissions 600)
+✅ **Všetky vault súbory** – nikdy sa nenahrávajú do cloudu
+✅ **OpenCode konfigurácia** – uložená lokálne
+✅ **Chat história** – uložená v OpenCode session DB (lokálne)
 
-### Čo ide cez internet?
+### Čo ide cez internet:
 
-⚠️ **Len tvoje prompty a odpovede** – putujú cez AWS Bedrock API  
-⚠️ **Obsah poznámok** – len ak explicitne požiadaš agenta o ich prečítanie
+Závisí od LLM providera. **Odporúčaný provider pre maximálne súkromie:** Amazon Bedrock
+- Žiadne logovanie, stateless API, GDPR compliant, EU región (`eu-central-1`)
+- AWS Terms of Service: dáta sa nepoužívajú na tréning modelov
+- Dokumentácia: https://aws.amazon.com/bedrock/data-protection/
 
-### Ako AWS Bedrock spracováva dáta?
+Pre kompletný Bedrock setup pozri: **[opencode-obsidian-ai-workspace](https://github.com/rho-sk/opencode-obsidian-ai-workspace)**
 
-- **Žiadne logovanie** – Bedrock neukladá tvoje prompty ani odpovede
-- **Stateless API** – žiadna perzistencia dát na AWS strane
-- **GDPR compliant** – používame EU región (`eu-central-1`)
-- **AWS Terms of Service** – AWS sa zaväzuje, že nepoužije tvoje dáta na tréning modelov
+### Offline alternatíva (Ollama)
 
-**Oficiálna dokumentácia:** https://aws.amazon.com/bedrock/data-protection/
-
----
-
-## Alternatívy (ak chceš 100% offline)
-
-Ak nechceš používať cloud LLM, môžeš použiť **Ollama** (lokálne modely):
-
-- ✅ **Plne offline** – žiadne API volania
-- ✅ **Zadarmo** – žiadne mesačné náklady
-- ❌ **Slabší výkon** – menšie modely = horšie výsledky
-- ❌ **Vyššie HW požiadavky** – potrebuješ silný GPU/CPU
-
-**Inštalácia Ollama:**
+Ak nechceš používať cloud LLM:
 
 ```bash
 curl https://ollama.ai/install.sh | sh
 ollama pull llama3.2
 ```
 
-**OpenCode konfigurácia:**
+OpenCode konfigurácia pre Ollama:
 
 ```json
 {
@@ -234,27 +224,27 @@ Teraz, keď rozumieš konceptu, prejdi na inštaláciu:
 
 ### Je to bezpečné?
 
-Áno. OpenCode beží lokálne, vault súbory zostávajú na tvojom PC. Len prompty a odpovede idú cez AWS Bedrock (GDPR-compliant, žiadne logovanie).
+Vault súbory zostávajú na tvojom PC vždy. Čo ide cez internet závisí od LLM providera – pre maximálne súkromie použi Amazon Bedrock alebo Ollama.
 
 ### Potrebujem AWS účet?
 
-Áno, pre Amazon Bedrock. Alternatívne môžeš použiť Ollama (lokálne modely, offline).
+Nie nutne. AWS účet potrebuješ len pre Amazon Bedrock. Alternatívne môžeš použiť Ollama (offline), Anthropic API alebo iný provider.
 
 ### Funguje to offline?
 
-Čiastočne. OpenCode + mcp-obsidian funguje offline, ale LLM (Bedrock) vyžaduje internet. Pre plný offline režim použi Ollama.
+Závisí od LLM providera. S Ollama – plne offline. S cloud providermi (Bedrock, Anthropic, OpenAI) – vyžaduje internet pre LLM volania. OpenCode server a mcp-obsidian samotné bežia lokálne vždy.
 
 ### Môžem používať iný LLM provider?
 
-Áno. OpenCode podporuje Anthropic API, OpenAI, Azure, Google Vertex AI, Ollama.
+Áno. OpenCode podporuje Amazon Bedrock, Anthropic API, OpenAI, Azure, Google Vertex AI, Ollama a ďalšie.
 
 ### Koľko to stojí?
 
-AWS Bedrock: ~$5-10/mesiac pri bežnom používaní. Ollama: zadarmo (ale potrebuješ silný HW).
+Závisí od providera. Amazon Bedrock ~$5-10/mesiac pri bežnom používaní. Ollama zadarmo (ale potrebuješ silný HW).
 
 ### Sú moje dáta v bezpečí?
 
-Áno. Vault zostáva lokálne, AWS Bedrock neukladá tvoje prompty, používame EU región (GDPR).
+Vault zostáva lokálne vždy. Pre prompty/odpovede – závisí od LLM providera. Bedrock: žiadne logovanie, GDPR. Ollama: plne offline.
 
 ---
 

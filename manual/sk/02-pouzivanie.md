@@ -10,6 +10,9 @@ tags:
 
 Tento dokument popisuje best practices, odporúčané pluginy a workflow pre efektívnu prácu s OpenCode Chat.
 
+> **Chceš hotový vault setup s templates, rules a Bedrock konfiguráciou?**
+> Pozri **[opencode-obsidian-ai-workspace](https://github.com/rho-sk/opencode-obsidian-ai-workspace)** – obsahuje kompletný setup pripravený na použitie.
+
 **Súvisiace dokumenty:**
 - [[00-uvod]] – Úvod a prehľad
 - [[01-instalacia]] – Inštalačný návod

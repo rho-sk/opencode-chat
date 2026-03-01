@@ -4,6 +4,7 @@ tags:
   - type/reference
   - project/opencode-chat
   - topic/documentation
+updated: '2026-03-01'
 ---
 # OpenCode Chat – Introduction
 
@@ -11,11 +12,16 @@ tags:
 
 OpenCode Chat is an Obsidian plugin that lets you talk to an **AI agent directly from your vault**. The agent has access to your notes and can help you manage, organize, and create content.
 
+The plugin is **provider-agnostic** – it works with any LLM provider supported by OpenCode (Amazon Bedrock, Ollama, Anthropic API, OpenAI, and more). The only mandatory component is **MCP vault access** via `mcp-obsidian`.
+
+> **Want a specific setup with Amazon Bedrock + vault guidelines?**
+> See **[opencode-obsidian-ai-workspace](https://github.com/rho-sk/opencode-obsidian-ai-workspace)** on GitHub – it includes a complete Bedrock setup, system rules, and templates.
+
 ---
 
 ## Why OpenCode Chat?
 
-### Privacy-first design
+### Your vault stays local – always
 
 Unlike traditional AI chatbots (ChatGPT, Claude web) where your data travels to external servers, **OpenCode Chat runs entirely on your machine**.
 
@@ -24,20 +30,24 @@ Unlike traditional AI chatbots (ChatGPT, Claude web) where your data travels to 
 - Your vault files **never leave your PC**
 - OpenCode runs on `localhost` — not the public internet
 - You decide which notes the agent can read
-- Amazon Bedrock EU region (`eu-central-1`) — GDPR compliant
-- AWS Bedrock does **not log or store** your prompts or responses
 - Full audit trail — every tool the agent used is visible in chat history
+
+**What goes over the internet depends on the LLM provider you choose:**
+- **Amazon Bedrock** – GDPR compliant, EU region, no logging *(recommended for privacy)*
+- **Ollama** – fully offline, no internet required
+- **Anthropic API / OpenAI** – data goes through their servers (check their terms)
 
 ### Comparison with alternatives
 
 | Feature | OpenCode Chat | ChatGPT web | Claude web | BMO Chatbot |
 |---|---|---|---|---|
 | Direct vault access | Yes (via MCP) | No | No | Yes (via API) |
-| Data privacy | Local server | Cloud | Cloud | Depends on LLM |
+| Vault files stay local | Always | No (cloud) | No (cloud) | Yes |
+| Choice of LLM provider | Any supported | OpenAI only | Anthropic only | Limited |
 | Offline vault access | Yes | No | No | Yes |
 | Streaming responses | Yes (SSE) | Yes | Yes | No |
 | Native Obsidian plugin | Yes | No | No | Yes |
-| Cost | ~$5-10/month | ~$20/month | ~$20/month | Varies |
+| Cost | Depends on provider | ~$20/month | ~$20/month | Varies |
 
 ---
 
@@ -78,22 +88,22 @@ AI:  *Reads notes, creates a markdown report*
 ```
 ┌─────────────────────────────┐
 │   Obsidian Desktop          │  ← You write notes
-│   ┌─────────────────────┐  │
-│   │ OpenCode Chat Plugin│  │  ← Chat interface
-│   └──────────┬──────────┘  │
-└──────────────┼──────────────┘
+│   ┌─────────────────────┐   │
+│   │ OpenCode Chat Plugin│   │  ← Chat interface
+│   └──────────┬──────────┘   │
+└──────────────┼───────────────┘
                │ HTTP API (localhost:4096)
                ▼
 ┌──────────────────────────────┐
 │  OpenCode Server (local)     │  ← AI agent engine
 └──────────────┬───────────────┘
-               │ AWS Bedrock API
+               │ LLM Provider API (configurable)
                ▼
 ┌──────────────────────────────┐
-│  Amazon Bedrock (EU)         │  ← Claude 3.5 Sonnet/Haiku
-│  (GDPR, no data storage)     │
+│  LLM Provider                │  ← e.g. Amazon Bedrock, Ollama,
+│                              │      Anthropic API, OpenAI, ...
 └──────────────┬───────────────┘
-               │ MCP Protocol
+               │ MCP Protocol (required)
                ▼
 ┌──────────────────────────────┐
 │  mcp-obsidian                │  ← Vault file access
@@ -110,8 +120,8 @@ AI:  *Reads notes, creates a markdown report*
 
 - OpenCode runs on your machine (not a cloud service)
 - mcp-obsidian reads the vault directly from the filesystem (no HTTP server)
-- Amazon Bedrock is only the LLM provider (stateless API, no logging)
 - Vault files never leave your PC
+- The LLM provider is configurable – switch by changing OpenCode config
 
 ---
 
@@ -122,7 +132,7 @@ AI:  *Reads notes, creates a markdown report*
 - **Obsidian** (desktop app) – https://obsidian.md
 - **Node.js 20+**
 - **OpenCode** – AI agent platform
-- **AWS account** – for Amazon Bedrock (or Ollama for offline)
+- **LLM provider** – AWS account (Bedrock), Ollama for offline, or another provider
 
 ### Skills
 
@@ -139,48 +149,35 @@ AI:  *Reads notes, creates a markdown report*
 
 ## Cost
 
-| Model | Input ($/1M tokens) | Output ($/1M tokens) | Best for |
-|---|---|---|---|
-| Claude 3.5 Sonnet v2 | $3 | $15 | Complex tasks, code, analysis |
-| Claude 3.5 Haiku | $1 | $5 | Simple queries, search |
+Depends on the LLM provider:
 
-**Real-world usage:**
-
-- 100–200 messages/day (mix of Sonnet + Haiku): **~$5–10 / month**
-- Power user (500+ messages/day): **~$20–30 / month**
-
-**Tip:** Use Haiku for simple tasks (search, tagging) and Sonnet for complex ones (content generation, refactoring).
+| Provider | Cost | Notes |
+|---|---|---|
+| Amazon Bedrock | ~$5–10/month | Recommended – privacy, GDPR, EU region |
+| Ollama | Free | Fully offline, weaker models, higher HW requirements |
+| Anthropic API | ~$5–15/month | Direct Anthropic account |
+| OpenAI API | ~$5–20/month | GPT models |
 
 ---
 
 ## Privacy and security
 
-### What stays local
+### What stays local — always (regardless of provider)
 
 - All vault files — never uploaded to the cloud
 - OpenCode configuration — stored locally
 - Chat history — stored in OpenCode's local session DB
-- AWS credentials — stored in `~/.aws/credentials` (file permissions 600)
 
 ### What goes over the internet
 
-- Your prompts and responses — sent via AWS Bedrock API
-- Note contents — only if you explicitly ask the agent to read them
-
-### How AWS Bedrock handles data
-
-- No logging — Bedrock does not store your prompts or responses
-- Stateless API — no data persistence on the AWS side
-- GDPR compliant — EU region (`eu-central-1`)
+Depends on the LLM provider. **Recommended for maximum privacy: Amazon Bedrock**
+- No logging, stateless API, GDPR compliant, EU region (`eu-central-1`)
 - AWS Terms of Service prohibit using your data for model training
+- Official docs: https://aws.amazon.com/bedrock/data-protection/
 
-Official docs: https://aws.amazon.com/bedrock/data-protection/
+For a complete Bedrock setup, see: **[opencode-obsidian-ai-workspace](https://github.com/rho-sk/opencode-obsidian-ai-workspace)**
 
----
-
-## Offline alternative (Ollama)
-
-If you want 100% offline operation:
+### Offline alternative (Ollama)
 
 ```bash
 curl https://ollama.ai/install.sh | sh
@@ -207,19 +204,19 @@ Note: local models are weaker than Claude 3.5 and require a powerful GPU/CPU.
 ## FAQ
 
 **Is this secure?**
-Yes. OpenCode runs locally, vault files stay on your PC. Only prompts go via AWS Bedrock (GDPR-compliant, no logging).
+Vault files always stay on your PC. What goes over the internet depends on the LLM provider. For maximum privacy use Amazon Bedrock or Ollama.
 
 **Do I need an AWS account?**
-Yes, for Amazon Bedrock. Alternatively use Ollama (local models, offline).
+Only if using Amazon Bedrock. You can also use Ollama (offline), Anthropic API, OpenAI, or other providers.
 
 **Does it work offline?**
-Partially. OpenCode + mcp-obsidian work offline; the LLM (Bedrock) requires internet. For full offline use Ollama.
+Depends on the LLM provider. With Ollama – fully offline. With cloud providers (Bedrock, Anthropic, OpenAI) – internet required for LLM calls. OpenCode server and mcp-obsidian always run locally.
 
 **Can I use a different LLM provider?**
-Yes. OpenCode supports Anthropic API, OpenAI, Azure, Google Vertex AI, Ollama.
+Yes. OpenCode supports Amazon Bedrock, Anthropic API, OpenAI, Azure, Google Vertex AI, Ollama, and more.
 
 **How much does it cost?**
-AWS Bedrock: ~$5–10/month for typical usage. Ollama: free (but requires powerful hardware).
+Depends on the provider. Amazon Bedrock ~$5–10/month for typical usage. Ollama is free (but requires powerful hardware).
 
 ---
 

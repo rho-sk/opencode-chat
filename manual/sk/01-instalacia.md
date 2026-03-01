@@ -1,5 +1,6 @@
 ---
 created: '2026-02-28'
+updated: '2026-03-01'
 tags:
   - type/reference
   - project/opencode-chat
@@ -25,7 +26,7 @@ Pred začatím overiť, že máš:
 - ✅ **Obsidian desktop** (https://obsidian.md) – verzia 1.0.0+
 - ✅ **Prístup k terminálu** (Linux/macOS: Terminal, Windows: PowerShell)
 - ✅ **Admin práva** (pre inštaláciu Node.js)
-- ✅ **AWS účet** (pre Amazon Bedrock) – alebo Ollama pre offline režim
+- ✅ **LLM provider** – AWS účet (Bedrock), Ollama, Anthropic API alebo iný
 
 ---
 
@@ -75,8 +76,6 @@ npm --version
 
 OpenCode je AI agent platforma, ktorá beží ako lokálny server.
 
-### Automatická inštalácia (všetky platformy)
-
 ```bash
 npm install -g opencode-ai
 ```
@@ -92,26 +91,52 @@ opencode --version
 
 ---
 
-## Krok 3: Konfigurácia Amazon Bedrock
+## Krok 3: Konfigurácia LLM providera
 
-### 3.1 Získanie API kľúča
+OpenCode podporuje viacero LLM providerov. Vyber si podľa svojich požiadaviek:
 
-1. Prihlás sa do **AWS Console**: https://console.aws.amazon.com
-2. Prejdi na **Amazon Bedrock**
-3. V ľavom menu klikni **API keys** (alebo **Settings → API keys**)
-4. Vygeneruj nový API kľúč a ulož si ho
+| Provider | Vhodné pre | Náklady |
+|---|---|---|
+| **Amazon Bedrock** | Maximálne súkromie, GDPR | ~$5-10/mesiac |
+| **Ollama** | Plne offline, bez cloud | Zadarmo (vyšší HW nárok) |
+| **Anthropic API** | Priamy Claude prístup | ~$5-15/mesiac |
+| **OpenAI** | GPT modely | ~$5-20/mesiac |
 
-### 3.2 Pridanie API kľúča do OpenCode
-
-Spusti OpenCode a prihlás sa interaktívne:
+### 3.1 Konfigurácia cez `opencode auth login` (Bedrock, Anthropic, OpenAI)
 
 ```bash
 opencode auth login
 ```
 
-OpenCode zobrazí zoznam providerov — vyber **Amazon Bedrock** a zadaj API kľúč.
+OpenCode zobrazí zoznam providerov – vyber požadovaný a zadaj API kľúč.
 
-**✅ Checkpoint:** OpenCode je nakonfigurovaný pre Amazon Bedrock.
+**Pre Amazon Bedrock:** Potrebuješ AWS účet s povoleným Bedrock prístupom.
+> Kompletný Bedrock setup vrátane IAM, región a GDPR: pozri projekt **opencode-obsidian-ai-workspace** – `manual/sk/02-bedrock-nastavenie.md`
+
+**Pre Anthropic API / OpenAI:** Zadaj API kľúč priamo v `opencode auth login`.
+
+### 3.2 Konfigurácia Ollama (offline)
+
+```bash
+# Inštalácia Ollama
+curl https://ollama.ai/install.sh | sh
+ollama pull llama3.2
+```
+
+OpenCode konfigurácia (`~/.config/opencode/config.json`):
+
+```json
+{
+  "provider": {
+    "ollama": {
+      "baseUrl": "http://localhost:11434",
+      "model": "llama3.2"
+    }
+  }
+}
+```
+
+**✅ Checkpoint:** OpenCode je nakonfigurovaný pre zvolený LLM provider.
 
 ---
 
@@ -119,7 +144,7 @@ OpenCode zobrazí zoznam providerov — vyber **Amazon Bedrock** a zadaj API kľ
 
 OpenCode potrebuje vedieť, kde je tvoj Obsidian vault.
 
-### 5.1 Zisti cestu k tvojmu vaultu
+### 4.1 Zisti cestu k tvojmu vaultu
 
 **Linux/macOS:**
 ```bash
@@ -134,7 +159,7 @@ Get-Location
 # C:\Users\meno\Documents\obsidian\moj-vault
 ```
 
-### 5.2 Pridaj MCP konfiguráciu
+### 4.2 Pridaj MCP konfiguráciu
 
 Uprav súbor `~/.config/opencode/config.json`:
 
@@ -173,7 +198,7 @@ notepad $env:USERPROFILE\.config\opencode\config.json
 - macOS: `/Users/jan/Documents/obsidian/work`
 - Windows: `C:/Users/jan/Documents/obsidian/work` (použi `/`, nie `\`)
 
-### 5.3 Overenie MCP
+### 4.3 Overenie MCP
 
 Test, či mcp-obsidian funguje:
 
@@ -209,7 +234,7 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/rho/work/obsidian
+WorkingDirectory=/CESTA/K/VAULTU
 ExecStart=/usr/bin/opencode web --port 4096 --hostname 0.0.0.0 --cors app://obsidian.md --cors capacitor://localhost --cors http://localhost
 Restart=on-failure
 RestartSec=5
@@ -326,22 +351,20 @@ opencode web --port 4096 --hostname 0.0.0.0 --cors app://obsidian.md
 
 ## Krok 6: Inštalácia OpenCode Chat pluginu
 
-### 7.1 Stiahni plugin
+### 6.1 Stiahni plugin
 
-Plugin je dostupný ako ZIP:
-- **Umiestnenie:** `bedrock/attachments/opencode-chat-v1.3.18.zip`
-- Alebo stiahni z interného repozitára
+Plugin je dostupný ako ZIP – stiahni najnovší release z GitHub releases page.
 
-### 7.2 Rozbaľ do vault plugins priečinka
+### 6.2 Rozbaľ do vault plugins priečinka
 
 **Linux/macOS:**
 ```bash
-unzip opencode-chat-v1.3.18.zip -d /CESTA/K/VAULTU/.obsidian/plugins/
+unzip opencode-chat-v*.zip -d /CESTA/K/VAULTU/.obsidian/plugins/
 ```
 
 **Windows PowerShell:**
 ```powershell
-Expand-Archive -Path opencode-chat-v1.3.18.zip -DestinationPath C:\CESTA\K\VAULTU\.obsidian\plugins\
+Expand-Archive -Path opencode-chat-v*.zip -DestinationPath C:\CESTA\K\VAULTU\.obsidian\plugins\
 ```
 
 **Výsledná štruktúra:**
@@ -352,7 +375,7 @@ Expand-Archive -Path opencode-chat-v1.3.18.zip -DestinationPath C:\CESTA\K\VAULT
   └── styles.css
 ```
 
-### 7.3 Zapni plugin v Obsidian
+### 6.3 Zapni plugin v Obsidian
 
 1. Otvor Obsidian
 2. **Settings** (⚙️) → **Community plugins**
@@ -366,19 +389,12 @@ Expand-Archive -Path opencode-chat-v1.3.18.zip -DestinationPath C:\CESTA\K\VAULT
 
 ## Krok 7: Konfigurácia pluginu
 
-### 8.1 Otvor plugin settings
-
 **Settings** → **OpenCode Chat**
 
-### 8.2 Nastav server URL
-
-**Server URL:** `http://localhost:4096`
-
-### 8.3 (Voliteľné) Nastav default model
-
-**Default model:** `amazon-bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0`
-
-### 8.4 Test connection
+| Nastavenie | Hodnota |
+|---|---|
+| Server URL | `http://localhost:4096` |
+| Default model | závisí od LLM providera (napr. `amazon-bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0`) |
 
 Klikni na tlačidlo **Test connection**.
 
@@ -388,275 +404,25 @@ Ak všetko funguje, uvidíš: ✅ `Connected! OpenCode v1.x.x`
 
 ---
 
-## Krok 8: Inicializácia vault štruktúry
+## Krok 8: Prvý test
 
-Aby AI agent vedel, ako pracovať s tvojim vaultom, potrebuje:
-1. **System rules** – pravidlá organizácie poznámok
-2. **Templates** – šablóny pre rôzne typy poznámok
+### 8.1 Otvor OpenCode Chat
 
-### 9.1 Vytvorenie štruktúry
-
-Spusti v termináli (v adresári vaultu):
-
-**Linux/macOS:**
-```bash
-cd /CESTA/K/VAULTU
-
-# Vytvor priečinky
-mkdir -p system templates projects archive conversations
-
-# Stiahni starter files
-curl -o system/opencode-rules.md https://raw.githubusercontent.com/.../opencode-rules.md
-curl -o templates/project.md https://raw.githubusercontent.com/.../project.md
-curl -o templates/task.md https://raw.githubusercontent.com/.../task.md
-curl -o templates/note.md https://raw.githubusercontent.com/.../note.md
-curl -o templates/reference.md https://raw.githubusercontent.com/.../reference.md
-```
-
-**Alternatívne: Manuálne vytvorenie**
-
-Vytvor tieto súbory v tvojom vaulte:
-
-#### `system/opencode-rules.md`
-
-```markdown
-# Pravidlá pre OpenCode agenta
-
-## Organizácia poznámok
-
-### Priečinková štruktúra
-
-- `projects/` – aktívne projekty
-- `archive/` – archivované poznámky
-- `conversations/` – AI konverzácie
-- `templates/` – šablóny
-- `system/` – systémové súbory
-
-### Tag hierarchia
-
-**Povinné tagy:**
-- `#type/project` – projektová poznámka
-- `#type/task` – úloha
-- `#type/note` – voľná poznámka
-- `#type/reference` – referencia, tutorial
-- `#type/conversation` – AI chat
-
-**Status tagy:**
-- `#status/draft` – rozpracované
-- `#status/active` – aktívne
-- `#status/done` – hotové
-- `#status/archived` – archivované
-
-**Témy:**
-- `#topic/ai`, `#topic/development`, `#topic/obsidian`, atď.
-
-**Projekty:**
-- `#project/[meno-projektu]`
-
-### Frontmatter
-
-Každá poznámka musí mať:
-
-\`\`\`yaml
----
-created: YYYY-MM-DD
-tags:
-  - type/[typ]
-  - status/[status]
----
-\`\`\`
-
-### Šablóny
-
-Pri vytváraní poznámok **VŽDY použiť šablónu** z `templates/`:
-- `templates/project.md`
-- `templates/task.md`
-- `templates/note.md`
-- `templates/reference.md`
-
-### Pomenovanie súborov
-
-- Malé písmená
-- Pomlčky namiesto medzier
-- Stručné ale výstižné názvy
-
-**Príklad:** `projects/moj-projekt/plan-implementacie.md`
-
-## Workflow
-
-### Pri vytváraní poznámky:
-1. Načítaj šablónu z `templates/`
-2. Nahraď placeholdery (`{{title}}`, `{{date}}`, atď.)
-3. Doplň frontmatter
-4. Pridaj relevantné tagy
-5. Ulož do správneho priečinka
-
-### Pri aktualizácii:
-1. Zachovaj existujúce tagy
-2. Aktualizuj `updated` pole vo frontmatter
-3. Aktualizuj status ak sa zmenil
-```
-
-#### `templates/project.md`
-
-```markdown
----
-created: {{date}}
-tags:
-  - type/project
-  - status/active
-  - project/{{project-name}}
----
-
-# {{title}}
-
-## Prehľad
-
-*Stručný popis projektu a jeho cieľa.*
-
-## Ciele
-
-- [ ] Cieľ 1
-- [ ] Cieľ 2
-
-## Súvisiace poznámky
-
-- 
-
-## Status
-
-**Aktuálny stav:** 
-
-**Posledná aktualizácia:** {{date}}
-```
-
-#### `templates/task.md`
-
-```markdown
----
-created: {{date}}
-tags:
-  - type/task
-  - status/active
-  - project/{{project-name}}
-  - priority/medium
----
-
-# {{title}}
-
-## Popis
-
-*Popis úlohy.*
-
-## Kroky
-
-- [ ] Krok 1
-- [ ] Krok 2
-
-## Súvisiace poznámky
-
-- 
-```
-
-#### `templates/note.md`
-
-```markdown
----
-created: {{date}}
-tags:
-  - type/note
----
-
-# {{title}}
-
-## Obsah
-
-*Tvoja poznámka...*
-
-## Súvisiace poznámky
-
-- 
-```
-
-#### `templates/reference.md`
-
-```markdown
----
-created: {{date}}
-tags:
-  - type/reference
-  - topic/{{topic}}
----
-
-# {{title}}
-
-## Prehľad
-
-*Stručný úvod.*
-
-## Hlavné koncepty
-
-### Koncept 1
-
-*Vysvetlenie.*
-
-## Príklady
-
-\`\`\`
-// Ukážkový kód
-\`\`\`
-
-## Zdroje
-
-- 
-```
-
-### 9.2 Overenie štruktúry
-
-V Obsidian by si mal vidieť:
-
-```
-📁 system/
-  └── opencode-rules.md
-📁 templates/
-  ├── project.md
-  ├── task.md
-  ├── note.md
-  └── reference.md
-📁 projects/
-📁 archive/
-📁 conversations/
-```
-
-**✅ Checkpoint:** Vault má základnú štruktúru a šablóny.
-
----
-
-## Krok 9: Prvý test
-
-### 10.1 Otvor OpenCode Chat
-
-Klikni na **🤖 ikonu robota** v ribbon (ľavý sidebar).
+Klikni na **ikonu robota** v ribbon (ľavý sidebar).
 
 Chat sa otvorí v pravom sidebari.
 
-### 10.2 Odošli prvú správu
+### 8.2 Odošli prvú správu
 
 ```
-Prečítaj pravidlá z system/opencode-rules.md a povedz mi, ako mám organizovať poznámky
+Zisti, aké súbory a priečinky existujú v mojom vaulte
 ```
 
-AI by mala odpovedať so zhrnutím pravidiel.
+AI by mala vypísať štruktúru vaultu cez mcp-obsidian.
 
-### 10.3 Vytvor testovaciu poznámku
+**✅ Checkpoint:** OpenCode Chat funguje a vie čítať vault!
 
-```
-Vytvor projektovú poznámku podľa šablóny templates/project.md pre projekt "test-projektu"
-```
-
-AI načíta šablónu, vyplní placeholdery a vytvorí súbor `projects/test-projektu/prehľad.md`.
-
-**✅ Checkpoint:** OpenCode Chat funguje a vie pracovať s vaultom!
+> **Tip:** Pre kompletné system rules a templates (vault guidelines) pozri projekt **[[../../../projects/opencode-obsidian-ai-workspace/README|opencode-obsidian-ai-workspace]]**.
 
 ---
 
@@ -687,14 +453,10 @@ AI načíta šablónu, vyplní placeholdery a vytvorí súbor `projects/test-pro
 
 ### "Connection failed" v settings
 
-**Riešenie:**
-
 - Over URL: `http://localhost:4096` (bez trailing `/`)
 - Over, že OpenCode beží: `curl http://localhost:4096/global/health`
 
 ### AI nevidí vault súbory
-
-**Riešenie:**
 
 - Over MCP config v `~/.config/opencode/config.json`
 - Over cestu k vaultu (musí byť absolútna)
@@ -709,14 +471,13 @@ Po dokončení inštalácie by si mal mať:
 
 - ✅ Node.js 20+ nainštalovaný
 - ✅ OpenCode nainštalovaný (`opencode --version`)
-- ✅ Amazon Bedrock API kľúč nastavený cez `opencode auth login`
+- ✅ LLM provider nakonfigurovaný cez `opencode auth login` (alebo Ollama)
 - ✅ MCP konfigurácia s cestou k vaultu
 - ✅ OpenCode server beží (port 4096)
 - ✅ CORS nastavený na `app://obsidian.md`
 - ✅ Plugin rozbalený v `.obsidian/plugins/opencode-chat/`
 - ✅ Plugin zapnutý v Obsidian
 - ✅ Test connection úspešný
-- ✅ Vault má `system/` a `templates/` štruktúru
 - ✅ Prvý test funguje
 
 ---
@@ -729,6 +490,6 @@ Teraz si pripravený používať OpenCode Chat naplno!
 
 ---
 
-**Verzia:** 1.0  
-**Dátum:** 2026-02-28  
-**Plugin verzia:** 1.3.18
+**Verzia:** 1.1
+**Dátum:** 2026-03-01
+**Plugin verzia:** 1.3.23
