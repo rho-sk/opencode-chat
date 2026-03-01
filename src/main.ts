@@ -1729,7 +1729,7 @@ class OpenCodeSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Default model')
-			.setDesc('providerID/modelID — napr. amazon-bedrock/anthropic.claude-3-5-haiku-20241022-v1:0')
+			.setDesc('providerID/modelID — e.g. amazon-bedrock/anthropic.claude-3-5-haiku-20241022-v1:0')
 			.addText(t => t
 				.setPlaceholder('amazon-bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0')
 				.setValue(this.plugin.settings.defaultModel)
@@ -1737,7 +1737,7 @@ class OpenCodeSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Default agent')
-			.setDesc('build = môže editovať súbory a spúšťať nástroje; plan = iba plánuje')
+			.setDesc('build = can edit files and run tools; plan = plans only, does not execute')
 			.addDropdown(dd => dd
 				.addOption('build', 'build')
 				.addOption('plan', 'plan')
