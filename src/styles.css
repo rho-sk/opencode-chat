@@ -1,0 +1,1361 @@
+/* OpenCode Chat Plugin Styles v1.3.5 */
+
+.opencode-chat-root {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	font-size: 14px;
+	background: var(--background-primary);
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+
+.opencode-chat-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex-shrink: 0;
+}
+
+.opencode-chat-title {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 600;
+	font-size: 15px;
+	color: var(--text-normal);
+}
+
+.opencode-chat-header-btns {
+	display: flex;
+	gap: 4px;
+}
+
+.opencode-chat-icon-btn {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 4px 6px;
+	border-radius: var(--radius-s);
+	color: var(--text-muted);
+	display: flex;
+	align-items: center;
+}
+
+.opencode-chat-icon-btn:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+/* ── Toolbar: model + agent ──────────────────────────────────────────────── */
+
+.opencode-chat-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 10px;
+	background: var(--background-secondary);
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex-shrink: 0;
+	flex-wrap: wrap;
+}
+
+.opencode-toolbar-group {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.opencode-toolbar-icon {
+	color: var(--text-faint);
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+}
+
+.opencode-toolbar-select {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-primary);
+	color: var(--text-normal);
+	font-size: 12px;
+	padding: 3px 6px;
+	cursor: pointer;
+	max-width: 220px;
+	outline: none;
+}
+
+.opencode-toolbar-select:focus {
+	border-color: var(--interactive-accent);
+}
+
+/* Agent toggle buttons */
+
+.opencode-agent-btn {
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	color: var(--text-muted);
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	padding: 3px 9px;
+	cursor: pointer;
+	transition: background 0.12s, color 0.12s;
+}
+
+.opencode-agent-btn:first-of-type {
+	border-radius: var(--radius-s) 0 0 var(--radius-s);
+	border-right: none;
+}
+
+.opencode-agent-btn:last-of-type {
+	border-radius: 0 var(--radius-s) var(--radius-s) 0;
+}
+
+.opencode-agent-btn:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.opencode-agent-btn.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+}
+
+/* ── Active session title bar ────────────────────────────────────────────── */
+
+.opencode-chat-session-label {
+	padding: 6px 12px;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--text-normal);
+	background: var(--background-secondary);
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex-shrink: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* ── Messages ────────────────────────────────────────────────────────────── */
+
+.opencode-chat-messages {
+	flex: 1;
+	overflow-y: auto;
+	padding: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.opencode-msg {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	max-width: 100%;
+}
+
+.opencode-msg-label-row {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+}
+
+.opencode-msg-label {
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--text-faint);
+}
+
+.opencode-msg-meta {
+	font-size: 10px;
+	color: var(--text-faint);
+	opacity: 0.7;
+}
+
+.opencode-msg-user .opencode-msg-label {
+	color: var(--color-accent);
+}
+
+.opencode-msg-user .opencode-msg-label-row {
+	flex-direction: row-reverse;
+}
+
+.opencode-msg-user .opencode-msg-body {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-radius: var(--radius-m) var(--radius-s) var(--radius-m) var(--radius-m);
+	padding: 8px 12px;
+	align-self: flex-end;
+	max-width: 85%;
+}
+
+.opencode-msg-user .opencode-msg-body p {
+	margin: 0;
+	color: var(--text-on-accent);
+}
+
+.opencode-msg-assistant .opencode-msg-body {
+	background: var(--background-secondary);
+	border-radius: var(--radius-s) var(--radius-m) var(--radius-m) var(--radius-m);
+	padding: 8px 12px;
+	max-width: 100%;
+	user-select: text;
+	-webkit-user-select: text;
+}
+
+.opencode-msg-user .opencode-msg-body {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-radius: var(--radius-m) var(--radius-s) var(--radius-m) var(--radius-m);
+	padding: 8px 12px;
+	align-self: flex-end;
+	max-width: 85%;
+	user-select: text;
+	-webkit-user-select: text;
+}
+
+.opencode-msg-assistant .opencode-msg-body p:last-child {
+	margin-bottom: 0;
+}
+
+.opencode-msg-assistant .opencode-msg-body pre {
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 8px;
+	overflow-x: auto;
+}
+
+.opencode-msg-assistant .opencode-msg-body code {
+	background: var(--background-primary);
+	padding: 1px 4px;
+	border-radius: 3px;
+}
+
+.opencode-msg-system {
+	text-align: center;
+	color: var(--text-faint);
+	font-size: 12px;
+}
+
+/* ── Thinking animation ──────────────────────────────────────────────────── */
+
+.opencode-msg-thinking .opencode-thinking-dots {
+	display: flex;
+	gap: 4px;
+	padding: 10px 14px;
+	background: var(--background-secondary);
+	border-radius: var(--radius-s) var(--radius-m) var(--radius-m) var(--radius-m);
+	width: fit-content;
+}
+
+.opencode-thinking-dots span {
+	animation: opencode-blink 1.2s infinite;
+	color: var(--text-muted);
+	font-size: 16px;
+	line-height: 1;
+}
+
+.opencode-thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.opencode-thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes opencode-blink {
+	0%, 80%, 100% { opacity: 0.2; }
+	40% { opacity: 1; }
+}
+
+/* ── Input area ──────────────────────────────────────────────────────────── */
+
+.opencode-chat-input-area {
+	display: flex;
+	gap: 8px;
+	padding: 10px 12px;
+	border-top: 1px solid var(--background-modifier-border);
+	flex-shrink: 0;
+	align-items: stretch;
+}
+
+/* Vertical column: export on top, expand below, send/cancel at bottom */
+.opencode-chat-btn-col {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	flex-shrink: 0;
+	align-items: center;
+}
+
+.opencode-chat-textarea {
+	flex: 1;
+	resize: none;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	padding: 8px 10px;
+	font-size: 13px;
+	line-height: 1.5;
+	font-family: var(--font-text);
+	background: var(--background-secondary);
+	color: var(--text-normal);
+	outline: none;
+	/* Height = 4 buttons × 38px + 3 gaps × 4px = 164px */
+	min-height: 164px;
+	max-height: 320px;
+	overflow-y: hidden;
+	box-sizing: border-box;
+	align-self: stretch;
+}
+
+.opencode-chat-textarea:focus {
+	border-color: var(--interactive-accent);
+}
+
+.opencode-chat-send-btn {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border: none;
+	border-radius: var(--radius-m);
+	padding: 0;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 38px;
+	width: 38px;
+	flex-shrink: 0;
+}
+
+.opencode-chat-send-btn:hover {
+	background: var(--interactive-accent-hover);
+}
+
+.opencode-chat-send-btn:disabled,
+.opencode-chat-textarea:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* Cancel button */
+.opencode-chat-cancel-btn {
+	background: var(--background-modifier-error);
+	color: var(--text-on-accent);
+	border: none;
+	border-radius: var(--radius-m);
+	padding: 0;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 38px;
+	width: 38px;
+	flex-shrink: 0;
+}
+
+.opencode-chat-cancel-btn:hover {
+	filter: brightness(1.15);
+}
+
+/* Hidden utility */
+.opencode-hidden {
+	display: none !important;
+}
+
+/* Streaming cursor – pulzujúca bodka vedľa labelu kým streaming beží */
+.opencode-stream-cursor {
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--interactive-accent);
+	margin-left: 4px;
+	vertical-align: middle;
+	animation: opencode-pulse 1s infinite;
+}
+
+@keyframes opencode-pulse {
+	0%, 100% { opacity: 1; transform: scale(1); }
+	50% { opacity: 0.3; transform: scale(0.7); }
+}
+
+/* ── Session Picker ──────────────────────────────────────────────────────── */
+
+.opencode-session-picker {
+	position: fixed;
+	z-index: 1000;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	box-shadow: var(--shadow-l);
+	max-height: 400px;
+	overflow-y: auto;
+	padding: 8px 0;
+}
+
+.opencode-session-picker-title {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--text-faint);
+	text-transform: uppercase;
+	padding: 4px 12px 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	margin-bottom: 4px;
+}
+
+.opencode-session-picker-item {
+	padding: 6px 12px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.opencode-session-picker-item:hover {
+	background: var(--background-modifier-hover);
+}
+
+.ocp-info {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.ocp-rename-btn {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 3px 5px;
+	border-radius: var(--radius-s);
+	color: var(--text-faint);
+	display: flex;
+	align-items: center;
+	opacity: 0;
+	flex-shrink: 0;
+	transition: opacity 0.15s;
+}
+
+.opencode-session-picker-item:hover .ocp-rename-btn {
+	opacity: 1;
+}
+
+.ocp-rename-btn:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.ocp-slug {
+	font-size: 13px;
+	color: var(--text-normal);
+}
+
+.ocp-date {
+	font-size: 11px;
+	color: var(--text-faint);
+}
+
+.opencode-session-picker-close {
+	display: block;
+	width: calc(100% - 24px);
+	margin: 8px 12px 4px;
+	padding: 6px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: none;
+	cursor: pointer;
+	color: var(--text-muted);
+	font-size: 12px;
+}
+
+.opencode-session-picker-close:hover {
+	background: var(--background-modifier-hover);
+}
+
+/* Streaming plain-text placeholder – shown while tokens arrive, replaced by MD on finalize */
+.opencode-stream-pre {
+	margin: 0;
+	padding: 0;
+	background: none;
+	border: none;
+	font-family: var(--font-text);
+	font-size: inherit;
+	white-space: pre-wrap;
+	word-break: break-word;
+	color: var(--text-normal);
+}
+
+/* Tool activity indicator – shown while OpenCode runs bash/tools */
+.opencode-tool-activity {
+	font-size: 11px;
+	color: var(--text-faint);
+	font-family: var(--font-monospace);
+	padding: 2px 0 4px;
+	opacity: 0.8;
+}
+
+/* ── Copy button ─────────────────────────────────────────────────────────── */
+
+.opencode-copy-btn {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 2px 4px;
+	border-radius: var(--radius-s);
+	color: var(--text-faint);
+	display: flex;
+	align-items: center;
+	opacity: 0;
+	transition: opacity 0.15s;
+	flex-shrink: 0;
+}
+
+.opencode-msg:hover .opencode-copy-btn {
+	opacity: 1;
+}
+
+.opencode-copy-btn:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+/* ── Rename dialog ───────────────────────────────────────────────────────── */
+
+.opencode-rename-dialog {
+	position: fixed;
+	z-index: 1001;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	box-shadow: var(--shadow-l);
+	padding: 14px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.opencode-rename-title {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.opencode-rename-input {
+	width: 100%;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 6px 8px;
+	font-size: 13px;
+	background: var(--background-secondary);
+	color: var(--text-normal);
+	outline: none;
+	box-sizing: border-box;
+}
+
+.opencode-rename-input:focus {
+	border-color: var(--interactive-accent);
+}
+
+.opencode-rename-btns {
+	display: flex;
+	gap: 6px;
+	justify-content: flex-end;
+}
+
+.opencode-rename-save {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border: none;
+	border-radius: var(--radius-s);
+	padding: 5px 14px;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+.opencode-rename-save:hover {
+	background: var(--interactive-accent-hover);
+}
+
+.opencode-rename-cancel {
+	background: none;
+	color: var(--text-muted);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 5px 14px;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+.opencode-rename-cancel:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+/* ── Delete button (in session picker) ───────────────────────────────────── */
+
+.ocp-delete-btn {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 3px 5px;
+	border-radius: var(--radius-s);
+	color: var(--text-faint);
+	display: flex;
+	align-items: center;
+	opacity: 0;
+	flex-shrink: 0;
+	transition: opacity 0.15s;
+}
+
+.opencode-session-picker-item:hover .ocp-delete-btn {
+	opacity: 1;
+}
+
+.ocp-delete-btn:hover {
+	background: var(--background-modifier-error);
+	color: var(--text-error);
+}
+
+/* ── Delete dialog ───────────────────────────────────────────────────────── */
+
+.opencode-delete-dialog {
+	position: fixed;
+	z-index: 1001;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	box-shadow: var(--shadow-l);
+	padding: 14px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.opencode-delete-title {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--text-error);
+}
+
+.opencode-delete-message {
+	font-size: 12px;
+	color: var(--text-muted);
+	line-height: 1.4;
+}
+
+.opencode-delete-btns {
+	display: flex;
+	gap: 6px;
+	justify-content: flex-end;
+}
+
+.opencode-delete-confirm {
+	background: var(--text-error);
+	color: var(--text-on-accent);
+	border: none;
+	border-radius: var(--radius-s);
+	padding: 5px 14px;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+.opencode-delete-confirm:hover {
+	opacity: 0.8;
+}
+
+.opencode-delete-cancel {
+	background: none;
+	color: var(--text-muted);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 5px 14px;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+.opencode-delete-cancel:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+/* ── Expand editor button ────────────────────────────────────────────────── */
+
+.opencode-chat-expand-btn {
+	background: none;
+	color: var(--text-faint);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 0;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 38px;
+	width: 38px;
+	flex-shrink: 0;
+	transition: color 0.12s, background 0.12s;
+}
+
+.opencode-chat-expand-btn:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+	border-color: var(--interactive-accent);
+}
+
+.opencode-chat-export-btn {
+	background: none;
+	color: var(--text-faint);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 0;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 38px;
+	width: 38px;
+	flex-shrink: 0;
+	transition: color 0.12s, background 0.12s;
+}
+
+.opencode-chat-export-btn:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+	border-color: var(--interactive-accent);
+}
+
+/* ── Expanded editor modal ───────────────────────────────────────────────── */
+
+.opencode-expanded-editor {
+	position: fixed;
+	inset: 0;
+	z-index: 1100;
+	background: rgba(0, 0, 0, 0.55);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+	box-sizing: border-box;
+}
+
+.opencode-expanded-modal {
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	box-shadow: var(--shadow-l);
+	width: 100%;
+	max-width: 820px;
+	max-height: 90vh;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	position: relative;
+}
+
+.opencode-expanded-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px 14px 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--text-normal);
+	flex-shrink: 0;
+}
+
+.opencode-expanded-close {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 3px 5px;
+	border-radius: var(--radius-s);
+	color: var(--text-faint);
+	display: flex;
+	align-items: center;
+}
+
+.opencode-expanded-close:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.opencode-expanded-textarea {
+	flex: 1;
+	resize: none;
+	border: none;
+	outline: none;
+	padding: 14px 16px;
+	font-size: 14px;
+	line-height: 1.6;
+	font-family: var(--font-text);
+	background: var(--background-primary);
+	color: var(--text-normal);
+	min-height: 240px;
+	max-height: 65vh;
+	overflow-y: auto;
+	box-sizing: border-box;
+}
+
+.opencode-expanded-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px 14px;
+	border-top: 1px solid var(--background-modifier-border);
+	flex-shrink: 0;
+	gap: 10px;
+}
+
+.opencode-expanded-hint {
+	font-size: 11px;
+	color: var(--text-faint);
+}
+
+.opencode-expanded-send {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border: none;
+	border-radius: var(--radius-s);
+	padding: 6px 18px;
+	font-size: 13px;
+	cursor: pointer;
+	flex-shrink: 0;
+}
+
+.opencode-expanded-send:hover {
+	background: var(--interactive-accent-hover);
+}
+
+/* ── Expanded editor resize handle ──────────────────────────────────────── */
+
+.opencode-expanded-resize-handle {
+	position: absolute;
+	bottom: 0;
+	right: 0;
+	width: 18px;
+	height: 18px;
+	cursor: se-resize;
+	z-index: 10;
+	/* Draw a small SE-corner indicator */
+	background:
+		linear-gradient(135deg, transparent 60%, var(--background-modifier-border) 60%, var(--background-modifier-border) 70%, transparent 70%),
+		linear-gradient(135deg, transparent 75%, var(--background-modifier-border) 75%, var(--background-modifier-border) 85%, transparent 85%);
+}
+
+.opencode-expanded-resize-handle:hover {
+	background:
+		linear-gradient(135deg, transparent 60%, var(--interactive-accent) 60%, var(--interactive-accent) 70%, transparent 70%),
+		linear-gradient(135deg, transparent 75%, var(--interactive-accent) 75%, var(--interactive-accent) 85%, transparent 85%);
+}
+
+/* ── TODO inline (inside assistant message bubble) ───────────────────────── */
+
+.opencode-todo-inline {
+	margin-bottom: 6px;
+	padding: 6px 8px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+}
+
+.opencode-todo-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 4px;
+}
+
+.opencode-todo-title {
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--text-faint);
+}
+
+.opencode-todo-summary {
+	font-size: 11px;
+	color: var(--text-faint);
+	margin-left: auto;
+}
+
+.opencode-todo-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.opencode-todo-item {
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+	font-size: 12px;
+	color: var(--text-muted);
+	padding: 1px 0;
+}
+
+.opencode-todo-icon {
+	flex-shrink: 0;
+	width: 14px;
+	font-size: 11px;
+	color: var(--text-faint);
+	margin-top: 1px;
+}
+
+.opencode-todo-in_progress .opencode-todo-icon {
+	color: var(--color-accent);
+}
+
+.opencode-todo-completed .opencode-todo-icon {
+	color: var(--color-green, #5cad6a);
+}
+
+.opencode-todo-content {
+	flex: 1;
+}
+
+.opencode-todo-in_progress .opencode-todo-content {
+	color: var(--text-normal);
+	font-weight: 500;
+}
+
+.opencode-todo-completed .opencode-todo-content {
+	text-decoration: line-through;
+	opacity: 0.6;
+}
+
+/* ── Tool call rows ──────────────────────────────────────────────────────── */
+
+/* Tool rows (each tool is standalone, not wrapped) */
+.opencode-tool-row {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	overflow: hidden;
+	margin-bottom: 4px;
+}
+
+.opencode-tool-header {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 8px;
+	cursor: pointer;
+	font-size: 12px;
+	background: var(--background-primary);
+	user-select: none;
+}
+
+.opencode-tool-header:hover {
+	background: var(--background-modifier-hover);
+}
+
+.opencode-tool-status-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.opencode-tool-pending {
+	background: var(--text-faint);
+}
+
+.opencode-tool-running {
+	background: var(--color-accent);
+	animation: opencode-pulse 1s infinite;
+}
+
+.opencode-tool-completed {
+	background: var(--color-green, #5cad6a);
+}
+
+.opencode-tool-error {
+	background: var(--color-red, #e05252);
+}
+
+.opencode-tool-name {
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	color: var(--text-normal);
+	font-weight: 600;
+	flex-shrink: 0;
+}
+
+.opencode-tool-desc {
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	color: var(--text-faint);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	flex: 1;
+	min-width: 0;
+}
+
+.opencode-tool-output {
+	padding: 0;
+	border-top: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	max-height: 240px;
+	overflow-y: auto;
+}
+
+.opencode-tool-output-pre {
+	margin: 0;
+	padding: 6px 8px;
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	white-space: pre-wrap;
+	word-break: break-all;
+	color: var(--text-normal);
+	background: none;
+	border: none;
+}
+
+/* ── Permission Dialog ───────────────────────────────────────────────────── */
+
+.opencode-permission-dialog {
+	position: fixed;
+	z-index: 1000;
+	background: var(--background-primary);
+	border: 2px solid var(--color-orange);
+	border-radius: 8px;
+	padding: 14px 16px;
+	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.opencode-permission-title {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 600;
+	font-size: 14px;
+	color: var(--color-orange);
+	margin-bottom: 10px;
+}
+
+.opencode-permission-icon {
+	display: flex;
+	align-items: center;
+}
+
+.opencode-permission-desc {
+	font-size: 12px;
+	color: var(--text-normal);
+	white-space: pre-wrap;
+	word-break: break-all;
+	margin-bottom: 14px;
+	padding: 8px;
+	background: var(--background-secondary);
+	border-radius: 4px;
+	font-family: var(--font-monospace);
+}
+
+.opencode-permission-btns {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+}
+
+.opencode-permission-allow-once,
+.opencode-permission-allow-always,
+.opencode-permission-deny {
+	padding: 5px 12px;
+	border-radius: 5px;
+	border: 1px solid var(--background-modifier-border);
+	cursor: pointer;
+	font-size: 12px;
+	font-weight: 500;
+}
+
+.opencode-permission-allow-once {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+}
+
+.opencode-permission-allow-once:hover {
+	background: var(--interactive-accent-hover);
+}
+
+.opencode-permission-allow-always {
+	background: var(--background-modifier-success);
+	color: var(--text-normal);
+	border-color: var(--color-green);
+}
+
+.opencode-permission-allow-always:hover {
+	filter: brightness(1.1);
+}
+
+.opencode-permission-deny {
+	background: var(--background-secondary);
+	color: var(--text-muted);
+}
+
+.opencode-permission-deny:hover {
+	background: var(--background-modifier-error);
+	color: var(--text-error);
+	border-color: var(--color-red);
+}
+
+/* ── Question dialog ────────────────────────────────────────────────────── */
+
+.opencode-question-dialog {
+	position: fixed;
+	z-index: 1000;
+	background: var(--background-primary);
+	border: 2px solid var(--interactive-accent);
+	border-radius: 8px;
+	padding: 14px 16px;
+	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+	max-height: 70vh;
+	overflow-y: auto;
+}
+
+.opencode-question-title {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 600;
+	font-size: 14px;
+	color: var(--interactive-accent);
+	margin-bottom: 12px;
+}
+
+.opencode-question-icon {
+	display: flex;
+	align-items: center;
+}
+
+.opencode-question-body {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.opencode-question-block {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.opencode-question-text {
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--text-normal);
+	white-space: pre-wrap;
+}
+
+.opencode-question-header {
+	font-size: 11px;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.opencode-question-options {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.opencode-question-option {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.opencode-question-opt-btn {
+	padding: 4px 10px;
+	border-radius: 4px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+	color: var(--text-normal);
+	cursor: pointer;
+	font-size: 12px;
+	font-weight: 500;
+	white-space: nowrap;
+	flex-shrink: 0;
+	transition: background 0.1s, border-color 0.1s;
+}
+
+.opencode-question-opt-btn:hover {
+	background: var(--background-modifier-hover);
+	border-color: var(--interactive-accent);
+}
+
+.opencode-question-opt-btn.is-selected {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+}
+
+.opencode-question-opt-desc {
+	font-size: 11px;
+	color: var(--text-muted);
+}
+
+.opencode-question-custom {
+	margin-top: 4px;
+}
+
+.opencode-question-custom-input {
+	width: 100%;
+	padding: 5px 8px;
+	border-radius: 4px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+	color: var(--text-normal);
+	font-size: 12px;
+	box-sizing: border-box;
+}
+
+.opencode-question-custom-input:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+}
+
+.opencode-question-btns {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+	margin-top: 14px;
+}
+
+.opencode-question-submit {
+	padding: 5px 14px;
+	border-radius: 5px;
+	border: 1px solid var(--interactive-accent);
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	cursor: pointer;
+	font-size: 12px;
+	font-weight: 500;
+}
+
+.opencode-question-submit:hover {
+	background: var(--interactive-accent-hover);
+}
+
+.opencode-question-reject {
+	padding: 5px 12px;
+	border-radius: 5px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	cursor: pointer;
+	font-size: 12px;
+	font-weight: 500;
+}
+
+.opencode-question-reject:hover {
+	background: var(--background-modifier-error);
+	color: var(--text-error);
+	border-color: var(--color-red);
+}
+
+/* ── Step separator ─────────────────────────────────────────────────────── */
+
+.opencode-step-separator {
+	height: 1px;
+	background: var(--background-modifier-border);
+	margin: 8px 0;
+	opacity: 0.5;
+}
+
+/* ── Reasoning block ────────────────────────────────────────────────────── */
+
+.opencode-reasoning-block {
+	margin: 6px 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 5px;
+	overflow: hidden;
+}
+
+.opencode-reasoning-header {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 10px;
+	background: var(--background-secondary);
+	cursor: pointer;
+	user-select: none;
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+.opencode-reasoning-header:hover {
+	background: var(--background-modifier-hover);
+}
+
+.opencode-reasoning-icon {
+	display: flex;
+	align-items: center;
+	opacity: 0.7;
+}
+
+.opencode-reasoning-label {
+	flex: 1;
+	font-style: italic;
+}
+
+.opencode-reasoning-toggle {
+	display: flex;
+	align-items: center;
+	opacity: 0.5;
+}
+
+.opencode-reasoning-content {
+	padding: 8px 10px;
+	margin: 0;
+	font-size: 11px;
+	font-family: var(--font-monospace);
+	color: var(--text-muted);
+	white-space: pre-wrap;
+	word-break: break-word;
+	max-height: 300px;
+	overflow-y: auto;
+	background: var(--background-primary);
+}
+
+.opencode-reasoning-block.is-collapsed .opencode-reasoning-content {
+	display: none;
+}
+
+/* ── Step finish (cost / tokens) ────────────────────────────────────────── */
+
+.opencode-step-finish {
+	font-size: 10px;
+	color: var(--text-faint);
+	padding: 2px 6px;
+	margin: 2px 0;
+	font-family: var(--font-monospace);
+	opacity: 0.7;
+}
+
+/* ── Retry notice ───────────────────────────────────────────────────────── */
+
+.opencode-retry-notice {
+	font-size: 11px;
+	color: var(--color-orange);
+	padding: 3px 6px;
+	margin: 4px 0;
+	border-left: 2px solid var(--color-orange);
+	opacity: 0.85;
+}
+
+/* ── Settings version ───────────────────────────────────────────────────── */
+
+.opencode-settings-version {
+	margin-top: 24px;
+	font-size: 12px;
+	color: var(--text-muted);
+}
