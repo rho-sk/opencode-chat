@@ -5,12 +5,13 @@ import {
 	Notice,
 	Plugin,
 	PluginSettingTab,
+	RequestUrlParam,
 	Scope,
 	Setting,
-	TAbstractFile,
 	TFile,
 	TFolder,
 	WorkspaceLeaf,
+	requestUrl,
 	setIcon,
 } from 'obsidian';
 
@@ -162,32 +163,36 @@ interface ExportEntry {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-async function apiGet(base: string, path: string): Promise<any> {
-	const res = await fetch(`${base}${path}`);
-	if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-	return res.json();
+async function apiGet(base: string, path: string): Promise<unknown> {
+	const res = await requestUrl({ url: `${base}${path}` } as RequestUrlParam);
+	if (res.status < 200 || res.status >= 300) throw new Error(`HTTP ${res.status}: ${res.text}`);
+	return res.json;
 }
 
-async function apiPatch(base: string, path: string, body: unknown): Promise<any> {
-	const res = await fetch(`${base}${path}`, {
+async function apiPatch(base: string, path: string, body: unknown): Promise<unknown> {
+	const res = await requestUrl({
+		url: `${base}${path}`,
 		method: 'PATCH',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(body),
-	});
-	if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-	return res.json();
+	} as RequestUrlParam);
+	if (res.status < 200 || res.status >= 300) throw new Error(`HTTP ${res.status}: ${res.text}`);
+	return res.json;
 }
 
-async function apiPost(base: string, path: string, body: unknown): Promise<any> {
-	const res = await fetch(`${base}${path}`, {
+async function apiPost(base: string, path: string, body: unknown): Promise<unknown> {
+	const res = await requestUrl({
+		url: `${base}${path}`,
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(body),
-	});
-	if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-	return res.json();
+	} as RequestUrlParam);
+	if (res.status < 200 || res.status >= 300) throw new Error(`HTTP ${res.status}: ${res.text}`);
+	return res.json;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-deprecated
+// requestUrl does not support AbortSignal — native fetch is required here
 async function apiPostVoid(
 	base: string,
 	path: string,
@@ -204,7 +209,7 @@ async function apiPostVoid(
 }
 
 async function fetchModels(serverUrl: string): Promise<ModelInfo[]> {
-	const data = await apiGet(serverUrl, '/provider');
+	const data = await apiGet(serverUrl, '/provider') as { connected?: string[]; all?: { id: string; models?: Record<string, unknown> }[] };
 	const connected = new Set<string>(data.connected || []);
 	const result: ModelInfo[] = [];
 	for (const provider of (data.all || [])) {
@@ -213,7 +218,7 @@ async function fetchModels(serverUrl: string): Promise<ModelInfo[]> {
 			result.push({
 				providerID: provider.id,
 				modelID: modelId,
-				label: (model as any).name || modelId,
+				label: (model as { name?: string }).name || modelId,
 			});
 		}
 	}
@@ -273,7 +278,7 @@ class OpenCodeChatView extends ItemView {
 		await Promise.all([this.loadModels(), this.initSession()]);
 	}
 
-	async onClose() {
+	onClose() {
 		this._stopSSE();
 		this._popTextareaScope();
 	}
@@ -285,10 +290,10 @@ class OpenCodeChatView extends ItemView {
 		const sk = () => this.plugin.settings.sendKey || 'ctrl+enter';
 
 		sc.register(['Ctrl'], 'Enter', () => {
-			if (sk() === 'ctrl+enter') { this.sendMessage(); return false; }
+			if (sk() === 'ctrl+enter') { void this.sendMessage(); return false; }
 		});
 		sc.register(['Alt'], 'Enter', () => {
-			if (sk() === 'alt+enter') { this.sendMessage(); return false; }
+			if (sk() === 'alt+enter') { void this.sendMessage(); return false; }
 		});
 		sc.register(['Ctrl'], 'E', () => {
 			this.openExpandedEditor(); return false;
@@ -325,15 +330,15 @@ class OpenCodeChatView extends ItemView {
 
 		const newBtn = btnWrap.createEl('button', { cls: 'opencode-chat-icon-btn', attr: { title: 'New session' } });
 		setIcon(newBtn, 'plus');
-		newBtn.addEventListener('click', () => this.newSession());
+		newBtn.addEventListener('click', () => { void this.newSession(); });
 
 		const renameBtn = btnWrap.createEl('button', { cls: 'opencode-chat-icon-btn', attr: { title: 'Rename current session' } });
 		setIcon(renameBtn, 'pencil');
-		renameBtn.addEventListener('click', () => this.renameCurrentSession());
+		renameBtn.addEventListener('click', () => { void this.renameCurrentSession(); });
 
 		const histBtn = btnWrap.createEl('button', { cls: 'opencode-chat-icon-btn', attr: { title: 'Session history' } });
 		setIcon(histBtn, 'history');
-		histBtn.addEventListener('click', () => this.showSessionPicker());
+		histBtn.addEventListener('click', () => { void this.showSessionPicker(); });
 
 		// Session label
 		this.sessionLabel = root.createDiv({ cls: 'opencode-chat-session-label', text: 'Initializing…' });
@@ -349,7 +354,7 @@ class OpenCodeChatView extends ItemView {
 			const val = this.modelSelect.value;
 			this.selectedModel = this.models.find(m => `${m.providerID}/${m.modelID}` === val) || null;
 			this.plugin.settings.defaultModel = val;
-			this.plugin.saveSettings();
+			void this.plugin.saveSettings();
 		});
 
 		const agentWrap = toolbar.createDiv({ cls: 'opencode-toolbar-group' });
@@ -384,7 +389,7 @@ class OpenCodeChatView extends ItemView {
 			const sk = this.plugin.settings.sendKey || 'ctrl+enter';
 			if (e.key === 'Enter' && sk === 'enter' && !e.shiftKey && !e.ctrlKey && !e.altKey) {
 				e.preventDefault();
-				this.sendMessage();
+				void this.sendMessage();
 			}
 		});
 
@@ -396,28 +401,28 @@ class OpenCodeChatView extends ItemView {
 			attr: { title: 'Export chat to note' },
 		});
 		setIcon(exportBtn, 'file-down');
-		exportBtn.addEventListener('click', () => this.exportChatToNote());
+		exportBtn.addEventListener('click', () => { void this.exportChatToNote(); });
 
 		const expandBtn = btnCol.createEl('button', {
 			cls: 'opencode-chat-expand-btn',
 			attr: { title: 'Expand editor (Ctrl+E)' },
 		});
 		setIcon(expandBtn, 'maximize-2');
-		expandBtn.addEventListener('click', () => this.openExpandedEditor());
+		expandBtn.addEventListener('click', () => { this.openExpandedEditor(); });
 
 		this.cancelBtn = btnCol.createEl('button', {
 			cls: 'opencode-chat-cancel-btn opencode-hidden',
 			attr: { title: 'Stop generation' },
 		});
 		setIcon(this.cancelBtn, 'square');
-		this.cancelBtn.addEventListener('click', () => this.cancelGeneration());
+		this.cancelBtn.addEventListener('click', () => { void this.cancelGeneration(); });
 
 		this.sendBtn = btnCol.createEl('button', {
 			cls: 'opencode-chat-send-btn',
 			attr: { title: `Send (${this._sendKeyLabel()})` },
 		});
 		setIcon(this.sendBtn, 'send');
-		this.sendBtn.addEventListener('click', () => this.sendMessage());
+		this.sendBtn.addEventListener('click', () => { void this.sendMessage(); });
 	}
 
 	private _sendKeyLabel(): string {
@@ -434,12 +439,11 @@ class OpenCodeChatView extends ItemView {
 
 	private _growTextarea() {
 		const ta = this.textarea;
-		ta.style.height = 'auto';
+		ta.setCssProps({ 'height': 'auto' });
 		const minH = 164;
 		const maxH = 320;
 		const h = Math.max(minH, Math.min(ta.scrollHeight, maxH));
-		ta.style.height = h + 'px';
-		ta.style.overflowY = ta.scrollHeight > maxH ? 'auto' : 'hidden';
+		ta.setCssProps({ 'height': h + 'px', 'overflow-y': ta.scrollHeight > maxH ? 'auto' : 'hidden' });
 	}
 
 	// ── Expanded editor ───────────────────────────────────────────────────────
@@ -479,7 +483,7 @@ class OpenCodeChatView extends ItemView {
 			resizeStartW = modal.offsetWidth;
 			e.preventDefault();
 			e.stopPropagation();
-			document.body.style.userSelect = 'none';
+			(document.body as HTMLElement).setCssProps({ 'user-select': 'none' });
 		});
 
 		const onMouseMove = (e: MouseEvent) => {
@@ -505,7 +509,7 @@ class OpenCodeChatView extends ItemView {
 		const onMouseUp = () => {
 			if (!resizing) return;
 			resizing = false;
-			document.body.style.userSelect = '';
+			(document.body as HTMLElement).setCssProps({ 'user-select': '' });
 			suppressNextClick = true;
 		};
 		document.addEventListener('mousemove', onMouseMove);
@@ -538,7 +542,7 @@ class OpenCodeChatView extends ItemView {
 			this._growTextarea();
 			this.app.keymap.popScope(expandScope);
 			overlay.remove();
-			this.sendMessage();
+			void this.sendMessage();
 		};
 
 		closeBtn.addEventListener('click', close);
@@ -555,7 +559,7 @@ class OpenCodeChatView extends ItemView {
 			}
 		});
 
-		overlay.style.display = 'flex';
+		overlay.addClass('is-open');
 		ta.focus();
 		ta.setSelectionRange(ta.value.length, ta.value.length);
 	}
@@ -587,7 +591,9 @@ class OpenCodeChatView extends ItemView {
 		const signal = this._sseAbort.signal;
 		const url = `${this.plugin.settings.serverUrl}/event`;
 
-		(async () => {
+		// fetch is required here: requestUrl does not support ReadableStream / SSE streaming
+		// eslint-disable-next-line @typescript-eslint/no-deprecated
+		void (async () => {
 			try {
 				const res = await fetch(url, {
 					headers: { Accept: 'text/event-stream' },
@@ -706,15 +712,15 @@ class OpenCodeChatView extends ItemView {
 
 		if (type === 'session.created') {
 			const picker = document.querySelector('.opencode-session-picker');
-			if (picker) { picker.remove(); this.showSessionPicker(); }
+			if (picker) { picker.remove(); void this.showSessionPicker(); }
 			return;
 		}
 
 		if (type === 'session.deleted') {
 			const deletedId = p.info?.id;
 			const picker = document.querySelector('.opencode-session-picker');
-			if (picker) { picker.remove(); this.showSessionPicker(); }
-			if (deletedId && deletedId === this.sessionId) this.initSession();
+			if (picker) { picker.remove(); void this.showSessionPicker(); }
+			if (deletedId && deletedId === this.sessionId) void this.initSession();
 			return;
 		}
 
@@ -735,7 +741,7 @@ class OpenCodeChatView extends ItemView {
 		}
 
 		if (type === 'session.status' && p.sessionID === this.sessionId) {
-			if (p.status?.type === 'idle' && this._busy) this._finalizeStream();
+			if (p.status?.type === 'idle' && this._busy) void this._finalizeStream();
 		}
 	}
 
@@ -956,11 +962,11 @@ class OpenCodeChatView extends ItemView {
 		};
 
 		btnRow.createEl('button', { cls: 'opencode-permission-allow-once', text: 'Allow once' })
-			.addEventListener('click', () => reply('once'));
+			.addEventListener('click', () => { void reply('once'); });
 		btnRow.createEl('button', { cls: 'opencode-permission-allow-always', text: 'Allow always' })
-			.addEventListener('click', () => reply('always'));
+			.addEventListener('click', () => { void reply('always'); });
 		btnRow.createEl('button', { cls: 'opencode-permission-deny', text: 'Deny' })
-			.addEventListener('click', () => reply('reject'));
+			.addEventListener('click', () => { void reply('reject'); });
 
 		const rect = this.containerEl.getBoundingClientRect();
 		dialog.style.top = `${rect.top + 80}px`;
@@ -1028,7 +1034,7 @@ class OpenCodeChatView extends ItemView {
 		const submitBtn = btnRow.createEl('button', { cls: 'opencode-question-submit', text: 'Submit' });
 		const rejectBtn = btnRow.createEl('button', { cls: 'opencode-question-reject', text: 'Dismiss' });
 
-		submitBtn.addEventListener('click', async () => {
+		submitBtn.addEventListener('click', () => { void (async () => {
 			const finalAnswers = questions.map((q, qi) => {
 				const selected = [...answers[qi]];
 				const custom = customValues[qi].trim();
@@ -1042,14 +1048,14 @@ class OpenCodeChatView extends ItemView {
 			} catch (e) {
 				new Notice(`Question reply failed: ${(e as Error).message}`);
 			}
-		});
+		})(); });
 
-		rejectBtn.addEventListener('click', async () => {
+		rejectBtn.addEventListener('click', () => { void (async () => {
 			dialog.remove();
 			try {
 				await apiPost(this.plugin.settings.serverUrl, `/question/${requestID}/reject`, {});
 			} catch { /* ignore */ }
-		});
+		})(); });
 
 		const rect = this.containerEl.getBoundingClientRect();
 		dialog.style.top = `${rect.top + 80}px`;
@@ -1133,7 +1139,7 @@ class OpenCodeChatView extends ItemView {
 
 	async initSession() {
 		try {
-			const session = await apiPost(this.plugin.settings.serverUrl, '/session', {});
+			const session = await apiPost(this.plugin.settings.serverUrl, '/session', {}) as { id: string; title?: string; slug: string };
 			this.sessionId = session.id;
 			this.sessionLabel.setText(`Session: ${session.title || session.slug}`);
 			this.messagesEl.empty();
@@ -1181,7 +1187,7 @@ class OpenCodeChatView extends ItemView {
 
 		let currentTitle = '';
 		try {
-			const info = await apiGet(this.plugin.settings.serverUrl, `/session/${sessionId}`);
+			const info = await apiGet(this.plugin.settings.serverUrl, `/session/${sessionId}`) as { title?: string; slug?: string };
 			currentTitle = info.title || info.slug || '';
 		} catch { /* ignore */ }
 
@@ -1202,17 +1208,17 @@ class OpenCodeChatView extends ItemView {
 			const newTitle = input.value.trim();
 			if (!newTitle) { new Notice('Title cannot be empty'); return; }
 			try {
-				const updated = await apiPatch(this.plugin.settings.serverUrl, `/session/${sessionId}`, { title: newTitle });
+				const updated = await apiPatch(this.plugin.settings.serverUrl, `/session/${sessionId}`, { title: newTitle }) as { title?: string };
 				if (onSuccess) onSuccess(updated.title || newTitle);
 				new Notice('Session renamed');
 				close();
 			} catch (e) { new Notice(`Rename failed: ${(e as Error).message}`); }
 		};
 
-		saveBtn.addEventListener('click', save);
+		saveBtn.addEventListener('click', () => { void save(); });
 		cancelBtn.addEventListener('click', close);
 		input.addEventListener('keydown', (e) => {
-			if (e.key === 'Enter') { e.preventDefault(); save(); }
+			if (e.key === 'Enter') { e.preventDefault(); void save(); }
 			if (e.key === 'Escape') { e.preventDefault(); close(); }
 		});
 
@@ -1231,7 +1237,7 @@ class OpenCodeChatView extends ItemView {
 		input.select();
 	}
 
-	async deleteSession(sessionId: string, sessionTitle: string, onSuccess?: () => Promise<void>) {
+	deleteSession(sessionId: string, sessionTitle: string, onSuccess?: () => Promise<void>) {
 		document.querySelector('.opencode-delete-dialog')?.remove();
 
 		const dialog = document.body.createDiv({ cls: 'opencode-delete-dialog' });
@@ -1250,7 +1256,7 @@ class OpenCodeChatView extends ItemView {
 			deleteBtn.disabled = true;
 			cancelBtn.disabled = true;
 			try {
-				await fetch(`${this.plugin.settings.serverUrl}/session/${sessionId}`, { method: 'DELETE' });
+				await requestUrl({ url: `${this.plugin.settings.serverUrl}/session/${sessionId}`, method: 'DELETE' } as RequestUrlParam);
 				new Notice('Session deleted');
 				dialog.remove();
 
@@ -1260,7 +1266,7 @@ class OpenCodeChatView extends ItemView {
 					this.messagesEl.empty();
 					this.sessionLabel.setText('No active session');
 					try {
-						const remaining: SessionInfo[] = await apiGet(this.plugin.settings.serverUrl, '/session');
+						const remaining = await apiGet(this.plugin.settings.serverUrl, '/session') as SessionInfo[];
 						if (remaining && remaining.length > 0) {
 							const latest = remaining.reduce((a, b) =>
 								(b.time?.updated || 0) > (a.time?.updated || 0) ? b : a
@@ -1281,7 +1287,7 @@ class OpenCodeChatView extends ItemView {
 			}
 		};
 
-		deleteBtn.addEventListener('click', confirmDelete);
+		deleteBtn.addEventListener('click', () => { void confirmDelete(); });
 		cancelBtn.addEventListener('click', close);
 
 		const rect = this.containerEl.getBoundingClientRect();
@@ -1305,10 +1311,10 @@ class OpenCodeChatView extends ItemView {
 		document.querySelector('.opencode-session-picker')?.remove();
 
 		const placeholder = document.body.createDiv({ cls: 'opencode-session-picker opencode-session-picker-loading' });
-		placeholder.style.display = 'none';
+		placeholder.hide();
 
 		try {
-			const sessions: SessionInfo[] = await apiGet(this.plugin.settings.serverUrl, '/session');
+			const sessions = await apiGet(this.plugin.settings.serverUrl, '/session') as SessionInfo[];
 			placeholder.remove();
 
 			const race = document.querySelector('.opencode-session-picker');
@@ -1326,27 +1332,27 @@ class OpenCodeChatView extends ItemView {
 				const setTitle = (t: string) => { titleSpan.setText(t.length > 50 ? t.slice(0, 50) + '…' : t); };
 				setTitle(s.title || s.slug);
 				infoCol.createSpan({ cls: 'ocp-date', text: new Date(s.time.updated).toLocaleString() });
-				infoCol.addEventListener('click', async () => { picker.remove(); await this.loadSession(s.id, s.title || s.slug); });
+				infoCol.addEventListener('click', () => { void (async () => { picker.remove(); await this.loadSession(s.id, s.title || s.slug); })(); });
 
-				const renBtn = item.createEl('button', { cls: 'ocp-rename-btn', attr: { title: 'Rename' } });
-				setIcon(renBtn, 'pencil');
-				renBtn.addEventListener('click', (e) => {
-					e.stopPropagation();
-					picker.remove();
-					this.renameSession(s.id, (newTitle) => setTitle(newTitle));
-				});
+			const renBtn = item.createEl('button', { cls: 'ocp-rename-btn', attr: { title: 'Rename' } });
+			setIcon(renBtn, 'pencil');
+			renBtn.addEventListener('click', (e) => {
+				e.stopPropagation();
+				picker.remove();
+				void this.renameSession(s.id, (newTitle) => setTitle(newTitle));
+			});
 
-				const sessionIdToDelete = s.id;
-				const sessionTitleToDelete = s.title || s.slug;
-				const delBtn = item.createEl('button', { cls: 'ocp-delete-btn', attr: { title: 'Delete session' } });
-				setIcon(delBtn, 'trash-2');
-				delBtn.addEventListener('click', async (e) => {
-					e.stopPropagation();
-					picker.remove();
-					await this.deleteSession(sessionIdToDelete, sessionTitleToDelete, async () => {
-						await this.showSessionPicker();
-					});
+			const sessionIdToDelete = s.id;
+			const sessionTitleToDelete = s.title || s.slug;
+			const delBtn = item.createEl('button', { cls: 'ocp-delete-btn', attr: { title: 'Delete session' } });
+			setIcon(delBtn, 'trash-2');
+			delBtn.addEventListener('click', (e) => {
+				e.stopPropagation();
+				picker.remove();
+				void this.deleteSession(sessionIdToDelete, sessionTitleToDelete, async () => {
+					await this.showSessionPicker();
 				});
+			});
 			}
 
 			const closeBtn = picker.createEl('button', { cls: 'opencode-session-picker-close', text: '✕ Close' });
@@ -1421,7 +1427,7 @@ class OpenCodeChatView extends ItemView {
 			}
 
 			if (Array.isArray(todos) && todos.length > 0) {
-				this._todos = todos;
+				this._todos = todos as TodoItem[];
 				this._renderTodos();
 			}
 
@@ -1583,7 +1589,7 @@ class OpenCodeChatView extends ItemView {
 		if (!this._busy || !this.sessionId) return;
 		if (this._promptAbort) { this._promptAbort.abort(); this._promptAbort = null; }
 		try { await apiPostVoid(this.plugin.settings.serverUrl, `/session/${this.sessionId}/abort`, {}); } catch { /* ignore */ }
-		this._finalizeStream();
+		void this._finalizeStream();
 		this.appendSystemMsg('Generation stopped.');
 	}
 
@@ -1649,13 +1655,13 @@ class OpenCodeChatView extends ItemView {
 	private _addCopyBtn(labelRow: HTMLElement, getText: () => string): HTMLButtonElement {
 		const btn = labelRow.createEl('button', { cls: 'opencode-copy-btn', attr: { title: 'Copy to clipboard' } });
 		setIcon(btn, 'copy');
-		btn.addEventListener('click', async () => {
+		btn.addEventListener('click', () => { void (async () => {
 			try {
 				await navigator.clipboard.writeText(getText());
 				setIcon(btn, 'check');
 				setTimeout(() => setIcon(btn, 'copy'), 1500);
 			} catch { new Notice('Copy failed'); }
-		});
+		})(); });
 		return btn;
 	}
 
@@ -1717,7 +1723,7 @@ class OpenCodeSettingTab extends PluginSettingTab {
 	display() {
 		const { containerEl } = this;
 		containerEl.empty();
-		containerEl.createEl('h2', { text: 'OpenCode Chat Settings' });
+		new Setting(containerEl).setName('OpenCode Chat').setHeading();
 
 		new Setting(containerEl)
 			.setName('Server URL')
@@ -1775,7 +1781,7 @@ class OpenCodeSettingTab extends PluginSettingTab {
 			.setDesc('Check if OpenCode server is reachable')
 			.addButton(btn => btn.setButtonText('Test').onClick(async () => {
 				try {
-					const h = await apiGet(this.plugin.settings.serverUrl, '/global/health');
+					const h = await apiGet(this.plugin.settings.serverUrl, '/global/health') as { version?: string };
 					new Notice(`Connected! OpenCode v${h.version}`);
 				} catch (e) { new Notice(`Connection failed: ${(e as Error).message}`); }
 			}));
@@ -1795,12 +1801,12 @@ export default class OpenCodeChatPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 		this.registerView(VIEW_TYPE, (leaf) => new OpenCodeChatView(leaf, this));
-		this.addRibbonIcon('bot', 'OpenCode Chat', () => this.activateView());
-		this.addCommand({ id: 'open-chat', name: 'Open OpenCode Chat', callback: () => this.activateView() });
+		this.addRibbonIcon('bot', 'OpenCode Chat', () => { void this.activateView(); });
+		this.addCommand({ id: 'open-chat', name: 'Open chat', callback: () => { void this.activateView(); } });
 		this.addSettingTab(new OpenCodeSettingTab(this.app, this));
 	}
 
-	onunload() { this.app.workspace.detachLeavesOfType(VIEW_TYPE); }
+	onunload() { }
 
 	async activateView() {
 		const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE);
