@@ -82,6 +82,10 @@ echo "Compiling TypeScript…"
 node "$SCRIPT_DIR/esbuild.mjs"
 echo ""
 
+# ── Sync manifest.json to repo root (required for Obsidian Community Plugins) ─
+
+cp "$SRC_DIR/manifest.json" "$REPO_ROOT/manifest.json"
+
 # ── Package ZIP ───────────────────────────────────────────────────────────────
 
 if [[ "$NO_ZIP" == "false" ]]; then
