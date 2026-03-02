@@ -134,11 +134,25 @@ OpenCode config (`~/.config/opencode/config.json`):
 
 ---
 
-## Step 4: Configure MCP (vault access)
+## Step 4: Install and configure MCP (vault access)
 
-OpenCode needs to know where your Obsidian vault is.
+MCP (Model Context Protocol) allows OpenCode to read and write files in your Obsidian vault. We use the `@mauricio.wolff/mcp-obsidian` package.
 
-### 4.1 Find your vault path
+### 4.1 Install mcp-obsidian
+
+```bash
+npm install -g @mauricio.wolff/mcp-obsidian
+```
+
+Verify:
+
+```bash
+npx @mauricio.wolff/mcp-obsidian --version
+```
+
+> **Alternative without global install:** You can use `npx -y @mauricio.wolff/mcp-obsidian@latest` directly in the config — `npx` downloads the package automatically each time OpenCode starts. A global install is faster (no download on startup).
+
+### 4.2 Find your vault path
 
 **Linux/macOS:**
 ```bash
@@ -150,7 +164,7 @@ OpenCode needs to know where your Obsidian vault is.
 # Example: C:\Users\yourname\Documents\obsidian\my-vault
 ```
 
-### 4.2 Add MCP configuration
+### 4.3 Add MCP configuration
 
 Edit `~/.config/opencode/config.json`:
 
@@ -175,7 +189,7 @@ Replace `/PATH/TO/YOUR/VAULT` with your actual vault path:
 - macOS: `/Users/jan/Documents/obsidian/work`
 - Windows: `C:/Users/jan/Documents/obsidian/work` (use `/`, not `\`)
 
-### 4.3 Verify MCP
+### 4.4 Verify MCP
 
 ```bash
 npx -y @mauricio.wolff/mcp-obsidian@latest /PATH/TO/VAULT
@@ -419,6 +433,7 @@ The AI should list the vault structure via mcp-obsidian.
 - Node.js 20+ installed
 - OpenCode installed (`opencode --version`)
 - LLM provider configured via `opencode auth login` (or Ollama)
+- `mcp-obsidian` installed globally (`npm install -g @mauricio.wolff/mcp-obsidian`)
 - MCP configured with vault path
 - OpenCode server running (port 4096)
 - CORS set to `app://obsidian.md`

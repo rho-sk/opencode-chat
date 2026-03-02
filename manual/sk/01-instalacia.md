@@ -140,11 +140,27 @@ OpenCode konfigurácia (`~/.config/opencode/config.json`):
 
 ---
 
-## Krok 4: Konfigurácia MCP (prístup k vaultu)
+## Krok 4: Inštalácia a konfigurácia MCP (prístup k vaultu)
 
-OpenCode potrebuje vedieť, kde je tvoj Obsidian vault.
+MCP (Model Context Protocol) umožňuje OpenCode čítať a zapisovať súbory v tvojom Obsidian vaulte. Používame balík `@mauricio.wolff/mcp-obsidian`.
 
-### 4.1 Zisti cestu k tvojmu vaultu
+### 4.1 Nainštaluj mcp-obsidian
+
+```bash
+npm install -g @mauricio.wolff/mcp-obsidian
+```
+
+Overenie:
+
+```bash
+npx @mauricio.wolff/mcp-obsidian --version
+# alebo
+mcp-obsidian --version
+```
+
+> **Alternatíva bez globálnej inštalácie:** Môžeš použiť `npx -y @mauricio.wolff/mcp-obsidian@latest` priamo v konfigurácii – `npx` stiahne balík automaticky pri každom spustení OpenCode. Globálna inštalácia je však rýchlejšia (bez sťahovania pri štarte).
+
+### 4.2 Zisti cestu k tvojmu vaultu
 
 **Linux/macOS:**
 ```bash
@@ -159,7 +175,7 @@ Get-Location
 # C:\Users\meno\Documents\obsidian\moj-vault
 ```
 
-### 4.2 Pridaj MCP konfiguráciu
+### 4.3 Pridaj MCP konfiguráciu
 
 Uprav súbor `~/.config/opencode/config.json`:
 
@@ -198,7 +214,7 @@ notepad $env:USERPROFILE\.config\opencode\config.json
 - macOS: `/Users/jan/Documents/obsidian/work`
 - Windows: `C:/Users/jan/Documents/obsidian/work` (použi `/`, nie `\`)
 
-### 4.3 Overenie MCP
+### 4.4 Overenie MCP
 
 Test, či mcp-obsidian funguje:
 
@@ -472,6 +488,7 @@ Po dokončení inštalácie by si mal mať:
 - ✅ Node.js 20+ nainštalovaný
 - ✅ OpenCode nainštalovaný (`opencode --version`)
 - ✅ LLM provider nakonfigurovaný cez `opencode auth login` (alebo Ollama)
+- ✅ `mcp-obsidian` nainštalovaný globálne (`npm install -g @mauricio.wolff/mcp-obsidian`)
 - ✅ MCP konfigurácia s cestou k vaultu
 - ✅ OpenCode server beží (port 4096)
 - ✅ CORS nastavený na `app://obsidian.md`
