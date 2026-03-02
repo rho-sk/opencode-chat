@@ -191,7 +191,6 @@ async function apiPost(base: string, path: string, body: unknown): Promise<unkno
 	return res.json;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-deprecated
 // requestUrl does not support AbortSignal — native fetch is required here
 async function apiPostVoid(
 	base: string,
@@ -199,6 +198,7 @@ async function apiPostVoid(
 	body: unknown,
 	signal?: AbortSignal,
 ): Promise<void> {
+	// eslint-disable-next-line no-restricted-globals
 	const res = await fetch(`${base}${path}`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
@@ -483,7 +483,7 @@ class OpenCodeChatView extends ItemView {
 			resizeStartW = modal.offsetWidth;
 			e.preventDefault();
 			e.stopPropagation();
-			(document.body as HTMLElement).setCssProps({ 'user-select': 'none' });
+			document.body.setCssProps({ 'user-select': 'none' });
 		});
 
 		const onMouseMove = (e: MouseEvent) => {
@@ -509,7 +509,7 @@ class OpenCodeChatView extends ItemView {
 		const onMouseUp = () => {
 			if (!resizing) return;
 			resizing = false;
-			(document.body as HTMLElement).setCssProps({ 'user-select': '' });
+			document.body.setCssProps({ 'user-select': '' });
 			suppressNextClick = true;
 		};
 		document.addEventListener('mousemove', onMouseMove);
@@ -592,9 +592,9 @@ class OpenCodeChatView extends ItemView {
 		const url = `${this.plugin.settings.serverUrl}/event`;
 
 		// fetch is required here: requestUrl does not support ReadableStream / SSE streaming
-		// eslint-disable-next-line @typescript-eslint/no-deprecated
 		void (async () => {
 			try {
+				// eslint-disable-next-line no-restricted-globals
 				const res = await fetch(url, {
 					headers: { Accept: 'text/event-stream' },
 					signal,
@@ -613,7 +613,7 @@ class OpenCodeChatView extends ItemView {
 					for (const line of lines) {
 						if (line.startsWith('data: ')) {
 							try {
-								const evt: SSEEvent = JSON.parse(line.slice(6));
+								const evt = JSON.parse(line.slice(6)) as SSEEvent;
 								this._handleSSEEvent(evt);
 							} catch { /* ignore parse errors */ }
 						}
@@ -688,14 +688,14 @@ class OpenCodeChatView extends ItemView {
 			if (this._busy) {
 				const err = p.error;
 				const msg = err?.data?.message || err?.message || JSON.stringify(err) || 'Unknown error';
-				this._finalizeStream();
+				void this._finalizeStream();
 				this.appendSystemMsg(`Error: ${msg}`);
 			}
 			return;
 		}
 
 		if (type === 'session.idle' && p.sessionID === this.sessionId) {
-			this._finalizeStream();
+			void this._finalizeStream();
 			if (this._onIdleCallback) {
 				const cb = this._onIdleCallback;
 				this._onIdleCallback = null;
@@ -1167,7 +1167,7 @@ class OpenCodeChatView extends ItemView {
 
 	async newSession() {
 		this._stopSSE();
-		if (this._busy) this.cancelGeneration();
+		if (this._busy) void this.cancelGeneration();
 		this.sessionLabel.setText('Creating new session…');
 		this.messagesEl.empty();
 		this._exportedMsgCount = 0;
@@ -1723,7 +1723,6 @@ class OpenCodeSettingTab extends PluginSettingTab {
 	display() {
 		const { containerEl } = this;
 		containerEl.empty();
-		new Setting(containerEl).setName('OpenCode Chat').setHeading();
 
 		new Setting(containerEl)
 			.setName('Server URL')
@@ -1810,13 +1809,13 @@ export default class OpenCodeChatPlugin extends Plugin {
 
 	async activateView() {
 		const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE);
-		if (existing.length > 0) { this.app.workspace.revealLeaf(existing[0]); return; }
+		if (existing.length > 0) { void this.app.workspace.revealLeaf(existing[0]); return; }
 		const leaf = this.app.workspace.getRightLeaf(false);
 		if (!leaf) return;
 		await leaf.setViewState({ type: VIEW_TYPE, active: true });
-		this.app.workspace.revealLeaf(leaf);
+		void this.app.workspace.revealLeaf(leaf);
 	}
 
-	async loadSettings() { this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData()); }
+	async loadSettings() { this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<OpenCodeSettings>); }
 	async saveSettings() { await this.saveData(this.settings); }
 }

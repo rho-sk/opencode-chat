@@ -7,11 +7,17 @@
     "build": "node build/esbuild.mjs",
     "dev": "node build/esbuild.mjs --watch",
     "install-plugin": "node build/esbuild.mjs && node build/install.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/main.ts",
+    "lint:fix": "eslint src/main.ts --fix"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@typescript-eslint/parser": "^8.56.1",
     "esbuild": "^0.21.0",
+    "eslint": "^9.39.3",
+    "eslint-plugin-obsidianmd": "^0.1.9",
+    "globals": "^17.4.0",
     "obsidian": "latest",
     "typescript": "^5.4.0"
   }
