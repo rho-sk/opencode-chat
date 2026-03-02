@@ -696,7 +696,7 @@ class OpenCodeChatView extends ItemView {
 
 		if (type === 'message.part.updated') {
 			const part = p.part;
-			if (!part || !this._busy) return;
+			if (!part) return;
 
 			if (part.type === 'step-start') {
 				this._handleStepStart(part);
@@ -801,6 +801,10 @@ class OpenCodeChatView extends ItemView {
 
 		if (type === 'session.status' && p.sessionID === this.sessionId) {
 			if (p.status?.type === 'idle' && this._busy) void this._finalizeStream();
+		}
+
+		if (type === 'server.heartbeat') {
+			if (this._busy) this._resetWatchdog();
 		}
 	}
 
