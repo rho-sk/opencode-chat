@@ -5,9 +5,9 @@ import globals from "globals";
 import obsidianmd from "eslint-plugin-obsidianmd";
 
 export default defineConfig([
-  ...obsidianmd.configs.recommended,
   {
     files: ["**/*.ts"],
+    plugins: { obsidianmd },
     languageOptions: {
       parser: tsparser,
       parserOptions: { project: "./tsconfig.json" },
@@ -17,12 +17,17 @@ export default defineConfig([
       },
     },
     rules: {
+      ...obsidianmd.configs.recommended,
       // OpenCode brand name — allow capital O and C
       "obsidianmd/ui/sentence-case": [
-        "warn",
+        "error",
         {
           brands: ["OpenCode"],
           acronyms: ["URL", "MCP", "AWS", "SSE", "CORS", "API", "JSON", "ID"],
+          ignoreRegex: [
+            "^https?://",                          // URL placeholders
+            "^[a-z0-9-]+/[a-z0-9._:@/-]+$",       // provider/model-id strings
+          ],
         },
       ],
     },

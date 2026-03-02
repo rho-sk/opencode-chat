@@ -198,7 +198,6 @@ async function apiPostVoid(
 	body: unknown,
 	signal?: AbortSignal,
 ): Promise<void> {
-	// eslint-disable-next-line no-restricted-globals
 	const res = await fetch(`${base}${path}`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
@@ -270,7 +269,7 @@ class OpenCodeChatView extends ItemView {
 	}
 
 	getViewType() { return VIEW_TYPE; }
-	getDisplayText() { return 'OpenCode Chat'; }
+	getDisplayText() { return 'OpenCode chat'; }
 	getIcon() { return 'bot'; }
 
 	async onOpen() {
@@ -361,12 +360,12 @@ class OpenCodeChatView extends ItemView {
 		setIcon(agentWrap.createSpan({ cls: 'opencode-toolbar-icon' }), 'workflow');
 		this.agentBuild = agentWrap.createEl('button', {
 			cls: 'opencode-agent-btn' + (this.selectedAgent === 'build' ? ' is-active' : ''),
-			text: 'build',
+			text: 'Build',
 			attr: { title: 'Build – agent can edit files and run tools' },
 		});
 		this.agentPlan = agentWrap.createEl('button', {
 			cls: 'opencode-agent-btn' + (this.selectedAgent === 'plan' ? ' is-active' : ''),
-			text: 'plan',
+			text: 'Plan',
 			attr: { title: 'Plan – agent only plans, does not execute' },
 		});
 		this.agentBuild.addEventListener('click', () => this.setAgent('build'));
@@ -456,7 +455,7 @@ class OpenCodeChatView extends ItemView {
 
 		const header = modal.createDiv({ cls: 'opencode-expanded-header' });
 		header.createSpan({ text: 'Edit prompt' });
-		const closeBtn = header.createEl('button', { cls: 'opencode-expanded-close', attr: { title: 'Close (Esc)' } });
+		const closeBtn = header.createEl('button', { cls: 'opencode-expanded-close', attr: { title: 'Close (esc)' } });
 		setIcon(closeBtn, 'x');
 
 		const ta = modal.createEl('textarea', { cls: 'opencode-expanded-textarea' });
@@ -594,7 +593,6 @@ class OpenCodeChatView extends ItemView {
 		// fetch is required here: requestUrl does not support ReadableStream / SSE streaming
 		void (async () => {
 			try {
-				// eslint-disable-next-line no-restricted-globals
 				const res = await fetch(url, {
 					headers: { Accept: 'text/event-stream' },
 					signal,
@@ -1355,7 +1353,7 @@ class OpenCodeChatView extends ItemView {
 			});
 			}
 
-			const closeBtn = picker.createEl('button', { cls: 'opencode-session-picker-close', text: '✕ Close' });
+			const closeBtn = picker.createEl('button', { cls: 'opencode-session-picker-close', text: '✕ close' });
 			closeBtn.addEventListener('click', () => picker.remove());
 
 			const rect = this.containerEl.getBoundingClientRect();
@@ -1742,10 +1740,10 @@ class OpenCodeSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Default agent')
-			.setDesc('build = can edit files and run tools; plan = plans only, does not execute')
+			.setDesc('Build = can edit files and run tools; plan = plans only, does not execute')
 			.addDropdown(dd => dd
-				.addOption('build', 'build')
-				.addOption('plan', 'plan')
+				.addOption('build', 'Build')
+				.addOption('plan', 'Plan')
 				.setValue(this.plugin.settings.defaultAgent)
 				.onChange(async v => { this.plugin.settings.defaultAgent = v; await this.plugin.saveSettings(); }));
 
@@ -1771,7 +1769,7 @@ class OpenCodeSettingTab extends PluginSettingTab {
 			.setName('Export folder')
 			.setDesc('Vault folder where exported chat notes are saved. Created automatically if it does not exist.')
 			.addText(t => t
-			.setPlaceholder('conversations')
+			.setPlaceholder('Conversations')
 			.setValue(this.plugin.settings.exportFolder || 'conversations')
 			.onChange(async v => { this.plugin.settings.exportFolder = v.trim() || 'conversations'; await this.plugin.saveSettings(); }));
 
@@ -1800,7 +1798,7 @@ export default class OpenCodeChatPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 		this.registerView(VIEW_TYPE, (leaf) => new OpenCodeChatView(leaf, this));
-		this.addRibbonIcon('bot', 'OpenCode Chat', () => { void this.activateView(); });
+		this.addRibbonIcon('bot', 'OpenCode chat', () => { void this.activateView(); });
 		this.addCommand({ id: 'open-chat', name: 'Open chat', callback: () => { void this.activateView(); } });
 		this.addSettingTab(new OpenCodeSettingTab(this.app, this));
 	}
