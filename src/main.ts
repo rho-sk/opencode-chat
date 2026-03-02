@@ -251,6 +251,8 @@ class OpenCodeChatView extends ItemView {
 	private _exportedMsgCount = 0;
 	private _exportLog: ExportEntry[] = [];
 	private _textareaScope: Scope | null = null;
+	private _watchdogTimer: ReturnType<typeof setTimeout> | null = null;
+	private _lastEventTime = 0;
 
 	// DOM refs
 	sessionLabel!: HTMLElement;
@@ -261,6 +263,7 @@ class OpenCodeChatView extends ItemView {
 	textarea!: HTMLTextAreaElement;
 	sendBtn!: HTMLButtonElement;
 	cancelBtn!: HTMLButtonElement;
+	resetBtn!: HTMLButtonElement;
 
 	constructor(leaf: WorkspaceLeaf, plugin: OpenCodeChatPlugin) {
 		super(leaf);
@@ -338,6 +341,16 @@ class OpenCodeChatView extends ItemView {
 		const histBtn = btnWrap.createEl('button', { cls: 'opencode-chat-icon-btn', attr: { title: 'Session history' } });
 		setIcon(histBtn, 'history');
 		histBtn.addEventListener('click', () => { void this.showSessionPicker(); });
+
+		this.resetBtn = btnWrap.createEl('button', {
+			cls: 'opencode-chat-icon-btn opencode-reset-btn opencode-hidden',
+			attr: { title: 'Reset stuck state' },
+		});
+		setIcon(this.resetBtn, 'rotate-ccw');
+		this.resetBtn.addEventListener('click', () => {
+			void this._finalizeStream();
+			this.appendSystemMsg('UI state reset manually.');
+		});
 
 		// Session label
 		this.sessionLabel = root.createDiv({ cls: 'opencode-chat-session-label', text: 'Initializing…' });
@@ -576,12 +589,51 @@ class OpenCodeChatView extends ItemView {
 		this.textarea.disabled = busy;
 		this.sendBtn.classList.toggle('opencode-hidden', busy);
 		this.cancelBtn.classList.toggle('opencode-hidden', !busy);
+		this.resetBtn.classList.toggle('opencode-hidden', !busy);
+		if (busy) this._resetWatchdog();
+		else this._stopWatchdog();
 	}
 
 	// ── SSE ───────────────────────────────────────────────────────────────────
 
 	private _stopSSE() {
 		if (this._sseAbort) { this._sseAbort.abort(); this._sseAbort = null; }
+		this._stopWatchdog();
+	}
+
+	// ── Watchdog ──────────────────────────────────────────────────────────────
+
+	private _resetWatchdog() {
+		this._lastEventTime = Date.now();
+		if (!this._busy) return;
+		if (this._watchdogTimer) clearTimeout(this._watchdogTimer);
+		this._watchdogTimer = setTimeout(() => {
+			if (!this._busy) return;
+			// No SSE activity for 30s while busy — poll server for actual status
+			void this._syncBusyState();
+		}, 30_000);
+	}
+
+	private _stopWatchdog() {
+		if (this._watchdogTimer) { clearTimeout(this._watchdogTimer); this._watchdogTimer = null; }
+	}
+
+	private async _syncBusyState() {
+		if (!this._busy || !this.sessionId) return;
+		try {
+			const data = await apiGet(this.plugin.settings.serverUrl, `/session/${this.sessionId}`) as { status?: string };
+			if (data.status === 'idle' || data.status === undefined) {
+				void this._finalizeStream();
+				this.appendSystemMsg('Session completed (detected by watchdog).');
+			} else {
+				// Still running — reset watchdog for another 30s
+				this._resetWatchdog();
+			}
+		} catch {
+			// Server unreachable — finalize anyway to unblock UI
+			void this._finalizeStream();
+			this.appendSystemMsg('Connection lost. UI reset.');
+		}
 	}
 
 	private _startSSE() {
@@ -620,7 +672,13 @@ class OpenCodeChatView extends ItemView {
 			} catch (e) {
 				if (!(e as Error).message?.includes('aborted') && !signal.aborted) {
 					console.warn('OpenCode Chat: SSE disconnected, reconnecting in 3s', e);
-					setTimeout(() => { if (!signal.aborted) this._startSSE(); }, 3000);
+					setTimeout(() => {
+						if (!signal.aborted) {
+							this._startSSE();
+							// After reconnect, sync busy state — idle event may have been missed
+							if (this._busy) void this._syncBusyState();
+						}
+					}, 3000);
 				}
 			}
 		})();
@@ -628,6 +686,9 @@ class OpenCodeChatView extends ItemView {
 
 	private _handleSSEEvent(evt: SSEEvent) {
 		const { type, properties: p } = evt;
+
+		// Reset watchdog on every event while busy
+		if (this._busy) this._resetWatchdog();
 
 		// Ignore events from other sessions
 		const evtSession = p.sessionID || p.info?.sessionID || p.part?.sessionID;
