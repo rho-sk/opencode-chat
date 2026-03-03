@@ -26,11 +26,44 @@
 	font-weight: 600;
 	font-size: 15px;
 	color: var(--text-normal);
+	flex-shrink: 0;
+}
+
+.opencode-chat-project-wrap {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.opencode-chat-project-icon {
+	color: var(--text-faint);
+	display: flex;
+	align-items: center;
+}
+
+.opencode-chat-project-select {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-primary);
+	color: var(--text-normal);
+	font-size: 12px;
+	padding: 3px 6px;
+	cursor: pointer;
+	outline: none;
+	max-width: 140px;
+}
+
+.opencode-chat-project-select:focus {
+	border-color: var(--interactive-accent);
 }
 
 .opencode-chat-header-btns {
 	display: flex;
 	gap: 4px;
+}
+
+.opencode-toolbar-session-btns {
+	margin-left: auto;
 }
 
 .opencode-chat-icon-btn {
@@ -127,17 +160,88 @@
 
 /* ── Active session title bar ────────────────────────────────────────────── */
 
+.opencode-chat-session-label-row {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	background: var(--background-secondary);
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex-shrink: 0;
+	padding-right: 10px;
+}
+
 .opencode-chat-session-label {
+	flex: 1;
 	padding: 6px 12px;
 	font-size: 13px;
 	font-weight: 600;
 	color: var(--text-normal);
-	background: var(--background-secondary);
-	border-bottom: 1px solid var(--background-modifier-border);
-	flex-shrink: 0;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+.opencode-chat-assign-btn,
+.opencode-chat-delete-cur-btn {
+	flex-shrink: 0;
+}
+
+/* ── Project select active state ─────────────────────────────────────────── */
+
+.opencode-chat-project-select.opencode-project-select-active {
+	border-color: var(--color-orange);
+	color: var(--color-orange);
+	font-weight: 700;
+	font-size: 13px;
+}
+
+/* ── Drag resize handle ──────────────────────────────────────────────────── */
+
+.opencode-chat-resize-handle {
+	height: 6px;
+	flex-shrink: 0;
+	cursor: row-resize;
+	background: transparent;
+	border-top: 2px solid var(--background-modifier-border);
+	transition: border-color 0.15s;
+}
+
+.opencode-chat-resize-handle:hover {
+	border-color: var(--interactive-accent);
+}
+
+/* ── Assign project picker ───────────────────────────────────────────────── */
+
+.opencode-assign-picker {
+	position: fixed;
+	z-index: 1000;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	box-shadow: var(--shadow-l);
+	min-width: 160px;
+	max-width: 260px;
+	padding: 4px 0;
+}
+
+.opencode-assign-picker-title {
+	padding: 6px 12px 4px;
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.opencode-assign-picker-item {
+	padding: 6px 12px;
+	font-size: 13px;
+	cursor: pointer;
+	color: var(--text-normal);
+}
+
+.opencode-assign-picker-item:hover {
+	background: var(--background-modifier-hover);
 }
 
 /* ── Messages ────────────────────────────────────────────────────────────── */
@@ -276,7 +380,6 @@
 	display: flex;
 	gap: 8px;
 	padding: 10px 12px;
-	border-top: 1px solid var(--background-modifier-border);
 	flex-shrink: 0;
 	align-items: stretch;
 }
