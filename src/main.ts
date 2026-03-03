@@ -26,15 +26,17 @@ interface OpenCodeSettings {
 	rulesPath: string;
 	sendKey: string;
 	exportFolder: string;
+	projectsFolder: string;
 }
 
 const DEFAULT_SETTINGS: OpenCodeSettings = {
 	serverUrl: 'http://localhost:4096',
 	defaultModel: '',
 	defaultAgent: 'build',
-	rulesPath: 'system/opencode-rules.md',
+	rulesPath: 'system',
 	sendKey: 'ctrl+enter',
 	exportFolder: 'conversations',
+	projectsFolder: 'projects',
 };
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -119,7 +121,13 @@ interface SessionInfo {
 	id: string;
 	title?: string;
 	slug: string;
+	parentID?: string;
 	time: { updated: number };
+}
+
+interface PluginData {
+	projectSessions: Record<string, string>;
+	activeProject: string | null;
 }
 
 interface MessageInfo {
@@ -256,6 +264,7 @@ class OpenCodeChatView extends ItemView {
 
 	// DOM refs
 	sessionLabel!: HTMLElement;
+	projectSelect!: HTMLSelectElement;
 	modelSelect!: HTMLSelectElement;
 	agentBuild!: HTMLButtonElement;
 	agentPlan!: HTMLButtonElement;
@@ -277,7 +286,12 @@ class OpenCodeChatView extends ItemView {
 
 	async onOpen() {
 		this.buildUI();
+		await this.refreshProjectSelect();
 		await Promise.all([this.loadModels(), this.initSession()]);
+
+		this.registerEvent(this.app.vault.on('create', () => { void this.refreshProjectSelect(); }));
+		this.registerEvent(this.app.vault.on('delete', () => { void this.refreshProjectSelect(); }));
+		this.registerEvent(this.app.vault.on('rename', () => { void this.refreshProjectSelect(); }));
 	}
 
 	onClose() {
@@ -322,40 +336,32 @@ class OpenCodeChatView extends ItemView {
 		root.empty();
 		root.addClass('opencode-chat-root');
 
-		// Header
+		// Header: title left, project select right
 		const header = root.createDiv({ cls: 'opencode-chat-header' });
 		const titleWrap = header.createDiv({ cls: 'opencode-chat-title' });
 		setIcon(titleWrap.createSpan(), 'bot');
 		titleWrap.createSpan({ text: ' OpenCode Chat' });
 
-		const btnWrap = header.createDiv({ cls: 'opencode-chat-header-btns' });
+		const projectWrap = header.createDiv({ cls: 'opencode-chat-project-wrap' });
+		setIcon(projectWrap.createSpan({ cls: 'opencode-chat-project-icon' }), 'folder');
+		this.projectSelect = projectWrap.createEl('select', { cls: 'opencode-chat-project-select' });
+		this.projectSelect.addEventListener('change', () => { void this._onProjectChange(); });
 
-		const newBtn = btnWrap.createEl('button', { cls: 'opencode-chat-icon-btn', attr: { title: 'New session' } });
-		setIcon(newBtn, 'plus');
-		newBtn.addEventListener('click', () => { void this.newSession(); });
-
-		const renameBtn = btnWrap.createEl('button', { cls: 'opencode-chat-icon-btn', attr: { title: 'Rename current session' } });
-		setIcon(renameBtn, 'pencil');
-		renameBtn.addEventListener('click', () => { void this.renameCurrentSession(); });
-
-		const histBtn = btnWrap.createEl('button', { cls: 'opencode-chat-icon-btn', attr: { title: 'Session history' } });
-		setIcon(histBtn, 'history');
-		histBtn.addEventListener('click', () => { void this.showSessionPicker(); });
-
-		this.resetBtn = btnWrap.createEl('button', {
-			cls: 'opencode-chat-icon-btn opencode-reset-btn opencode-hidden',
-			attr: { title: 'Reset stuck state' },
-		});
-		setIcon(this.resetBtn, 'rotate-ccw');
-		this.resetBtn.addEventListener('click', () => {
-			void this._finalizeStream();
-			this.appendSystemMsg('UI state reset manually.');
+		// Session label row (label left, assign+delete buttons right)
+		const sessionLabelRow = root.createDiv({ cls: 'opencode-chat-session-label-row' });
+		this.sessionLabel = sessionLabelRow.createDiv({ cls: 'opencode-chat-session-label', text: 'Initializing…' });
+		const assignBtn = sessionLabelRow.createEl('button', { cls: 'opencode-chat-icon-btn opencode-chat-assign-btn', attr: { title: 'Assign session to project' } });
+		setIcon(assignBtn, 'link');
+		assignBtn.addEventListener('click', () => { void this._assignSessionToProject(); });
+		const deleteCurBtn = sessionLabelRow.createEl('button', { cls: 'opencode-chat-icon-btn opencode-chat-delete-cur-btn', attr: { title: 'Delete current session' } });
+		setIcon(deleteCurBtn, 'trash-2');
+		deleteCurBtn.addEventListener('click', () => {
+			if (!this.sessionId) { new Notice('No active session'); return; }
+			const title = this.sessionLabel.getText().replace(/^.*\/\s*/, '').replace(/^Session:\s*/i, '');
+			this.deleteSession(this.sessionId, title);
 		});
 
-		// Session label
-		this.sessionLabel = root.createDiv({ cls: 'opencode-chat-session-label', text: 'Initializing…' });
-
-		// Toolbar
+		// Toolbar: model, agent, session buttons
 		const toolbar = root.createDiv({ cls: 'opencode-chat-toolbar' });
 
 		const modelWrap = toolbar.createDiv({ cls: 'opencode-toolbar-group' });
@@ -384,8 +390,57 @@ class OpenCodeChatView extends ItemView {
 		this.agentBuild.addEventListener('click', () => this.setAgent('build'));
 		this.agentPlan.addEventListener('click', () => this.setAgent('plan'));
 
+		const btnWrap = toolbar.createDiv({ cls: 'opencode-toolbar-group opencode-toolbar-session-btns' });
+
+		const newBtn = btnWrap.createEl('button', { cls: 'opencode-chat-icon-btn', attr: { title: 'New session' } });
+		setIcon(newBtn, 'plus');
+		newBtn.addEventListener('click', () => { void this.newSession(); });
+
+		const renameBtn = btnWrap.createEl('button', { cls: 'opencode-chat-icon-btn', attr: { title: 'Rename current session' } });
+		setIcon(renameBtn, 'pencil');
+		renameBtn.addEventListener('click', () => { void this.renameCurrentSession(); });
+
+		const histBtn = btnWrap.createEl('button', { cls: 'opencode-chat-icon-btn', attr: { title: 'Session history' } });
+		setIcon(histBtn, 'history');
+		histBtn.addEventListener('click', () => { void this.showSessionPicker(); });
+
+		this.resetBtn = btnWrap.createEl('button', {
+			cls: 'opencode-chat-icon-btn opencode-reset-btn opencode-hidden',
+			attr: { title: 'Reset stuck state' },
+		});
+		setIcon(this.resetBtn, 'rotate-ccw');
+		this.resetBtn.addEventListener('click', () => {
+			void this._finalizeStream();
+			this.appendSystemMsg('UI state reset manually.');
+		});
+
 		// Messages
 		this.messagesEl = root.createDiv({ cls: 'opencode-chat-messages' });
+
+		// Drag handle to resize input area
+		const resizeHandle = root.createDiv({ cls: 'opencode-chat-resize-handle' });
+		let resizeDragging = false;
+		let resizeStartY = 0;
+		let resizeStartH = 0;
+		resizeHandle.addEventListener('mousedown', (e) => {
+			resizeDragging = true;
+			resizeStartY = e.clientY;
+			resizeStartH = inputArea.offsetHeight;
+			e.preventDefault();
+			document.body.setCssProps({ 'user-select': 'none', 'cursor': 'row-resize' });
+		});
+		document.addEventListener('mousemove', (e) => {
+			if (!resizeDragging) return;
+			const delta = resizeStartY - e.clientY; // drag up = bigger
+			const newH = Math.max(80, Math.min(600, resizeStartH + delta));
+			inputArea.setCssProps({ 'height': newH + 'px', 'flex-shrink': '0' });
+			this.textarea.setCssProps({ 'min-height': Math.max(40, newH - 28) + 'px', 'max-height': Math.max(40, newH - 28) + 'px' });
+		});
+		document.addEventListener('mouseup', () => {
+			if (!resizeDragging) return;
+			resizeDragging = false;
+			document.body.setCssProps({ 'user-select': '', 'cursor': '' });
+		});
 
 		// Input area
 		const inputArea = root.createDiv({ cls: 'opencode-chat-input-area' });
@@ -456,6 +511,140 @@ class OpenCodeChatView extends ItemView {
 		const maxH = 320;
 		const h = Math.max(minH, Math.min(ta.scrollHeight, maxH));
 		ta.setCssProps({ 'height': h + 'px', 'overflow-y': ta.scrollHeight > maxH ? 'auto' : 'hidden' });
+	}
+
+	// ── Project management ────────────────────────────────────────────────────
+
+	private _listProjects(): string[] {
+		const pf = this.plugin.settings.projectsFolder || 'projects';
+		const folder = this.app.vault.getAbstractFileByPath(pf);
+		if (!folder || !(folder instanceof TFolder)) return [];
+		return folder.children
+			.filter((f): f is TFolder => f instanceof TFolder)
+			.map(f => f.name)
+			.sort((a, b) => a.localeCompare(b));
+	}
+
+	async refreshProjectSelect() {
+		const projects = this._listProjects();
+		const data = await this.plugin.loadPluginData();
+		const active = data.activeProject;
+		this.projectSelect.empty();
+		this.projectSelect.createEl('option', { value: '', text: '— no project —' });
+		for (const p of projects) {
+			this.projectSelect.createEl('option', { value: p, text: p });
+		}
+		// Set the select's value explicitly so the browser reflects the selection
+		this.projectSelect.value = active || '';
+		// Reflect active state on the select element itself
+		this.projectSelect.toggleClass('opencode-project-select-active', !!active);
+	}
+
+	private async _onProjectChange() {
+		const val = this.projectSelect.value;
+		const projectName = val === '' ? null : val;
+		const data = await this.plugin.loadPluginData();
+		data.activeProject = projectName;
+		await this.plugin.savePluginData(data);
+		this.projectSelect.toggleClass('opencode-project-select-active', !!projectName);
+
+		if (!projectName) {
+			// Load last "no project" session — same behaviour as switching to a project
+			try {
+				const allSessions = await apiGet(this.plugin.settings.serverUrl, '/session') as SessionInfo[];
+				const parentIds = new Set(Object.values(data.projectSessions));
+				const noProjectSessions = allSessions.filter(s => !parentIds.has(s.id) && !s.parentID);
+				if (noProjectSessions.length > 0) {
+					const latest = noProjectSessions.reduce((a, b) =>
+						(b.time?.updated || 0) > (a.time?.updated || 0) ? b : a
+					);
+					await this.loadSession(latest.id, latest.title || latest.slug);
+					return;
+				}
+			} catch { /* fall through */ }
+			// No sessions without project — just update label
+			this.sessionLabel.setText('No active session');
+			this.messagesEl.empty();
+			this.appendSystemMsg('No sessions without a project. Press + to create a new one.');
+			return;
+		}
+
+		// Load last session of this project, or show message if none exists
+		const projectPath = `${this.plugin.settings.projectsFolder}/${projectName}`;
+		const parentId = data.projectSessions[projectPath];
+
+		if (parentId) {
+			try {
+				const allSessions = await apiGet(this.plugin.settings.serverUrl, '/session') as SessionInfo[];
+				const projectSessions = allSessions.filter(s => s.parentID === parentId);
+				if (projectSessions.length > 0) {
+					const latest = projectSessions.reduce((a, b) =>
+						(b.time?.updated || 0) > (a.time?.updated || 0) ? b : a
+					);
+					await this.loadSession(latest.id, latest.title || latest.slug);
+					return;
+				}
+			} catch { /* fall through */ }
+		}
+
+		// Project has no sessions — show info, do NOT auto-create
+		this.sessionLabel.setText(`${projectName} / no session`);
+		this.messagesEl.empty();
+		this.appendSystemMsg(`Project "${projectName}" has no sessions yet. Press + to create a new one.`);
+	}
+
+	private _assignSessionToProject() {
+		if (!this.sessionId) { new Notice('No active session'); return; }
+		const projects = this._listProjects();
+		if (projects.length === 0) { new Notice('No projects found'); return; }
+
+		// Show a small project picker popup near the assign button
+		document.querySelector('.opencode-assign-picker')?.remove();
+		const picker = document.body.createDiv({ cls: 'opencode-assign-picker' });
+		picker.createDiv({ cls: 'opencode-assign-picker-title', text: 'Assign to project' });
+
+		for (const projectName of projects) {
+			const item = picker.createDiv({ cls: 'opencode-assign-picker-item' });
+			item.setText(projectName);
+			item.addEventListener('click', () => {
+				picker.remove();
+				void this._doAssignToProject(projectName);
+			});
+		}
+
+		const rect = this.sessionLabel.getBoundingClientRect();
+		picker.setCssProps({ top: `${rect.bottom + 4}px`, left: `${rect.left}px` });
+
+		setTimeout(() => {
+			document.addEventListener('click', function handler(e) {
+				if (!picker.contains(e.target as Node)) { picker.remove(); document.removeEventListener('click', handler); }
+			});
+		}, 100);
+	}
+
+	private async _doAssignToProject(projectName: string) {
+		if (!this.sessionId) return;
+		const projectPath = `${this.plugin.settings.projectsFolder}/${projectName}`;
+		const data = await this.plugin.loadPluginData();
+		const parentId = await this.plugin.getOrCreateProjectSession(projectName, projectPath);
+		try {
+			await apiPatch(this.plugin.settings.serverUrl, `/session/${this.sessionId}`, { parentID: parentId });
+		} catch { /* server may not support parentID patch */ }
+		data.activeProject = projectName;
+		await this.plugin.savePluginData(data);
+		await this.refreshProjectSelect();
+		const ctx = `<opencode-project-context>\nYou are working in project: ${projectName} (vault path: ${projectPath}). All notes, tasks and files created in this session belong to this project.\n</opencode-project-context>`;
+		this._pendingRules = (this._pendingRules ? this._pendingRules + '\n\n' : '') + ctx;
+		this._updateSessionLabel();
+		new Notice(`Session assigned to project: ${projectName}`);
+	}
+
+	private _updateSessionLabel() {
+		const val = this.projectSelect?.value;
+		const projectName = val && val !== '' ? val : null;
+		const raw = this.sessionLabel.getText();
+		const sessionPart = raw.includes(' / ') ? raw.split(' / ').pop()! : raw.replace(/^Session:\s*/i, '');
+		this.sessionLabel.setText(projectName ? `${projectName} / ${sessionPart}` : `Session: ${sessionPart}`);
 	}
 
 	// ── Expanded editor ───────────────────────────────────────────────────────
@@ -762,7 +951,11 @@ class OpenCodeChatView extends ItemView {
 
 		if (type === 'session.updated' && p.info?.id === this.sessionId) {
 			const title = p.info.title || p.info.slug;
-			if (title) this.sessionLabel.setText(`Session: ${title}`);
+			if (title) {
+				const val = this.projectSelect?.value;
+				const projectName = val && val !== '' ? val : null;
+				this.sessionLabel.setText(projectName ? `${projectName} / ${title}` : `Session: ${title}`);
+			}
 			return;
 		}
 
@@ -776,7 +969,40 @@ class OpenCodeChatView extends ItemView {
 			const deletedId = p.info?.id;
 			const picker = document.querySelector('.opencode-session-picker');
 			if (picker) { picker.remove(); void this.showSessionPicker(); }
-			if (deletedId && deletedId === this.sessionId) void this.initSession();
+			if (deletedId && deletedId === this.sessionId) {
+				this._stopSSE();
+				this.sessionId = null;
+				this.messagesEl.empty();
+				this.sessionLabel.setText('No active session');
+				void (async () => {
+					try {
+						const data = await this.plugin.loadPluginData();
+						const activeProject = data.activeProject;
+						const allSessions = await apiGet(this.plugin.settings.serverUrl, '/session') as SessionInfo[];
+						if (activeProject) {
+							const projectPath = `${this.plugin.settings.projectsFolder}/${activeProject}`;
+							const parentId = data.projectSessions[projectPath];
+							const projectSessions = parentId ? allSessions.filter(s => s.parentID === parentId) : [];
+							if (projectSessions.length > 0) {
+								const latest = projectSessions.reduce((a, b) =>
+									(b.time?.updated || 0) > (a.time?.updated || 0) ? b : a);
+								await this.loadSession(latest.id, latest.title || latest.slug);
+							} else {
+								this.sessionLabel.setText(`${activeProject} / no session`);
+								this.appendSystemMsg(`Project "${activeProject}" has no sessions yet. Press + to create a new one.`);
+							}
+						} else if (allSessions && allSessions.length > 0) {
+							const latest = allSessions.reduce((a, b) =>
+								(b.time?.updated || 0) > (a.time?.updated || 0) ? b : a);
+							await this.loadSession(latest.id, latest.title || latest.slug);
+						} else {
+							this.appendSystemMsg('No sessions. Press + to create a new one.');
+						}
+					} catch {
+						this.appendSystemMsg('No sessions. Press + to create a new one.');
+					}
+				})();
+			}
 			return;
 		}
 
@@ -1195,13 +1421,30 @@ class OpenCodeChatView extends ItemView {
 
 	async initSession() {
 		try {
-			const session = await apiPost(this.plugin.settings.serverUrl, '/session', {}) as { id: string; title?: string; slug: string };
+			const data = await this.plugin.loadPluginData();
+			const projectName = data.activeProject;
+			const body: Record<string, unknown> = {};
+
+			if (projectName) {
+				const projectPath = `${this.plugin.settings.projectsFolder}/${projectName}`;
+				const parentId = await this.plugin.getOrCreateProjectSession(projectName, projectPath);
+				body['parentID'] = parentId;
+			}
+
+			const session = await apiPost(this.plugin.settings.serverUrl, '/session', body) as { id: string; title?: string; slug: string };
 			this.sessionId = session.id;
-			this.sessionLabel.setText(`Session: ${session.title || session.slug}`);
+			const title = session.title || session.slug;
+			this.sessionLabel.setText(projectName ? `${projectName} / ${title}` : `Session: ${title}`);
 			this.messagesEl.empty();
 			this._startSSE();
 			const rules = await this.loadRules();
-			this._pendingRules = rules || null;
+			let pendingRules = rules || null;
+			if (projectName) {
+				const projectPath = `${this.plugin.settings.projectsFolder}/${projectName}`;
+				const ctx = `<opencode-project-context>\nYou are working in project: ${projectName} (vault path: ${projectPath}). All notes, tasks and files created in this session belong to this project.\n</opencode-project-context>`;
+				pendingRules = pendingRules ? `${pendingRules}\n\n${ctx}` : ctx;
+			}
+			this._pendingRules = pendingRules;
 			this.appendSystemMsg('Session ready. Type your message below.');
 		} catch (e) {
 			this.sessionLabel.setText('Error: cannot connect');
@@ -1320,17 +1563,37 @@ class OpenCodeChatView extends ItemView {
 					this.messagesEl.empty();
 					this.sessionLabel.setText('No active session');
 					try {
-						const remaining = await apiGet(this.plugin.settings.serverUrl, '/session') as SessionInfo[];
-						if (remaining && remaining.length > 0) {
-							const latest = remaining.reduce((a, b) =>
+						const data = await this.plugin.loadPluginData();
+						const activeProject = data.activeProject;
+						const allSessions = await apiGet(this.plugin.settings.serverUrl, '/session') as SessionInfo[];
+
+						if (activeProject) {
+							// Stay in project context — find another session in this project
+							const projectPath = `${this.plugin.settings.projectsFolder}/${activeProject}`;
+							const parentId = data.projectSessions[projectPath];
+							const projectSessions = parentId
+								? allSessions.filter(s => s.parentID === parentId)
+								: [];
+							if (projectSessions.length > 0) {
+								const latest = projectSessions.reduce((a, b) =>
+									(b.time?.updated || 0) > (a.time?.updated || 0) ? b : a
+								);
+								await this.loadSession(latest.id, latest.title || latest.slug);
+							} else {
+								// No more sessions in project — show "no sessions yet" message
+								this.sessionLabel.setText(`${activeProject} / no session`);
+								this.appendSystemMsg(`Project "${activeProject}" has no sessions yet. Press + to create a new one.`);
+							}
+						} else if (allSessions && allSessions.length > 0) {
+							const latest = allSessions.reduce((a, b) =>
 								(b.time?.updated || 0) > (a.time?.updated || 0) ? b : a
 							);
 							await this.loadSession(latest.id, latest.title || latest.slug);
 						} else {
-							await this.initSession();
+							this.appendSystemMsg('No sessions. Press + to create a new one.');
 						}
 					} catch {
-						await this.initSession();
+						this.appendSystemMsg('No sessions. Press + to create a new one.');
 					}
 				}
 
@@ -1366,16 +1629,33 @@ class OpenCodeChatView extends ItemView {
 		placeholder.hide();
 
 		try {
-			const sessions = await apiGet(this.plugin.settings.serverUrl, '/session') as SessionInfo[];
+			const allSessions = await apiGet(this.plugin.settings.serverUrl, '/session') as SessionInfo[];
 			placeholder.remove();
 
 			const race = document.querySelector('.opencode-session-picker');
 			if (race) race.remove();
 
-			if (!sessions || sessions.length === 0) { new Notice('No sessions found'); return; }
+			if (!allSessions || allSessions.length === 0) { new Notice('No sessions found'); return; }
+
+			// Filter by active project
+			const data = await this.plugin.loadPluginData();
+			const activeProject = data.activeProject;
+			const parentIds = new Set(Object.values(data.projectSessions));
+			let sessions: SessionInfo[];
+			if (activeProject) {
+				const projectPath = `${this.plugin.settings.projectsFolder}/${activeProject}`;
+				const parentId = data.projectSessions[projectPath];
+				sessions = parentId ? allSessions.filter(s => s.parentID === parentId) : [];
+			} else {
+				// No project selected — show all non-root sessions
+				sessions = allSessions.filter(s => !parentIds.has(s.id));
+			}
+
+			if (sessions.length === 0) { new Notice('No sessions found for this filter'); return; }
 
 			const picker = document.body.createDiv({ cls: 'opencode-session-picker' });
-			picker.createDiv({ cls: 'opencode-session-picker-title', text: 'Select session' });
+			const pickerTitle = activeProject ? `Sessions: ${activeProject}` : 'All sessions';
+			picker.createDiv({ cls: 'opencode-session-picker-title', text: pickerTitle });
 
 			for (const s of sessions.slice(0, 100)) {
 				const item = picker.createDiv({ cls: 'opencode-session-picker-item' });
@@ -1430,7 +1710,43 @@ class OpenCodeChatView extends ItemView {
 		this.messagesEl.empty();
 		this._exportedMsgCount = 0;
 		this._exportLog = [];
-		this.sessionLabel.setText(`Session: ${slug}`);
+
+		// If this session belongs to a project, update the dropdown to reflect it
+		try {
+			const data = await this.plugin.loadPluginData();
+			const sessionInfo = await apiGet(this.plugin.settings.serverUrl, `/session/${id}`) as SessionInfo;
+			const parentId = sessionInfo.parentID;
+			if (parentId) {
+				const projectEntry = Object.entries(data.projectSessions).find(([, pid]) => pid === parentId);
+				if (projectEntry) {
+					const projectName = projectEntry[0].split('/').pop()!;
+					// Update dropdown without triggering _onProjectChange
+					this.projectSelect.value = projectName;
+					this.projectSelect.toggleClass('opencode-project-select-active', true);
+					data.activeProject = projectName;
+					await this.plugin.savePluginData(data);
+					this.sessionLabel.setText(`${projectName} / ${slug}`);
+				} else {
+					this.projectSelect.value = '';
+					this.projectSelect.toggleClass('opencode-project-select-active', false);
+					data.activeProject = null;
+					await this.plugin.savePluginData(data);
+					this.sessionLabel.setText(`Session: ${slug}`);
+				}
+			} else {
+				// Session has no parent — clear project dropdown
+				this.projectSelect.value = '';
+				this.projectSelect.toggleClass('opencode-project-select-active', false);
+				data.activeProject = null;
+				await this.plugin.savePluginData(data);
+				this.sessionLabel.setText(`Session: ${slug}`);
+			}
+		} catch {
+			// Fallback: just use current dropdown state
+			const val = this.projectSelect?.value;
+			const projectName = val && val !== '' ? val : null;
+			this.sessionLabel.setText(projectName ? `${projectName} / ${slug}` : `Session: ${slug}`);
+		}
 
 		try {
 			const [data, todos] = await Promise.all([
@@ -1826,6 +2142,14 @@ class OpenCodeSettingTab extends PluginSettingTab {
 			.onChange(async v => { this.plugin.settings.exportFolder = v.trim() || 'conversations'; await this.plugin.saveSettings(); }));
 
 		new Setting(containerEl)
+			.setName('Projects folder')
+			.setDesc('Vault folder that contains your projects (subfolders = projects).')
+			.addText(t => t
+			.setPlaceholder('Projects')
+			.setValue(this.plugin.settings.projectsFolder || 'projects')
+			.onChange(async v => { this.plugin.settings.projectsFolder = v.trim() || 'projects'; await this.plugin.saveSettings(); }));
+
+		new Setting(containerEl)
 			.setName('Test connection')
 			.setDesc('Check if OpenCode server is reachable')
 			.addButton(btn => btn.setButtonText('Test').onClick(async () => {
@@ -1868,4 +2192,28 @@ export default class OpenCodeChatPlugin extends Plugin {
 
 	async loadSettings() { this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<OpenCodeSettings>); }
 	async saveSettings() { await this.saveData(this.settings); }
+
+	// ── Plugin data ───────────────────────────────────────────────────────────
+
+	async loadPluginData(): Promise<PluginData> {
+		const raw = (await this.loadData()) as Partial<PluginData> | null;
+		return {
+			projectSessions: raw?.projectSessions ?? {},
+			activeProject: raw?.activeProject ?? null,
+		};
+	}
+
+	async savePluginData(data: PluginData): Promise<void> {
+		const existing = (await this.loadData()) as Record<string, unknown> | null ?? {};
+		await this.saveData({ ...existing, projectSessions: data.projectSessions, activeProject: data.activeProject });
+	}
+
+	async getOrCreateProjectSession(projectName: string, projectPath: string): Promise<string> {
+		const data = await this.loadPluginData();
+		if (data.projectSessions[projectPath]) return data.projectSessions[projectPath];
+		const session = await apiPost(this.settings.serverUrl, '/session', { title: projectName }) as { id: string };
+		data.projectSessions[projectPath] = session.id;
+		await this.savePluginData(data);
+		return session.id;
+	}
 }
