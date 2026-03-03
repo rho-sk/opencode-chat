@@ -258,6 +258,8 @@ class OpenCodeChatView extends ItemView {
 	private _todoInlineEl: HTMLElement | null = null;
 	private _exportedMsgCount = 0;
 	private _exportLog: ExportEntry[] = [];
+	private _conversationNotePathMap: Map<string, string> = new Map();
+	private _sessionAutoNamedSet: Set<string> = new Set();
 	private _textareaScope: Scope | null = null;
 	private _watchdogTimer: ReturnType<typeof setTimeout> | null = null;
 	private _lastEventTime = 0;
@@ -909,6 +911,8 @@ class OpenCodeChatView extends ItemView {
 			const sid = p.sessionID;
 			if (sid) {
 				this.setBusy(false, sid);
+				// Log conversation for ALL sessions (visible or background)
+				void this._autoLogConversation(sid);
 				if (sid === this.sessionId) {
 					void this._finalizeStream();
 					if (this._onIdleCallback) {
@@ -1424,6 +1428,7 @@ class OpenCodeChatView extends ItemView {
 		this._reasoningParts = {};
 		this.scrollToBottom();
 		this.textarea.focus();
+		// Note: _autoLogConversation is triggered by session.idle for all sessions
 	}
 
 	// ── Rules ─────────────────────────────────────────────────────────────────
@@ -1962,6 +1967,23 @@ class OpenCodeChatView extends ItemView {
 		const text = this.textarea.value.trim();
 		if (!text || !this.sessionId || this._busy) return;
 
+		// Auto-rename session from first user message
+		if (!this._sessionAutoNamedSet.has(this.sessionId) && this.sessionId) {
+			this._sessionAutoNamedSet.add(this.sessionId);
+			const sid = this.sessionId;
+			const autoTitle = text.split(/\s+/).slice(0, 6).join(' ').replace(/[\\/:*?"<>|#^[\]]/g, '-').trim();
+			void (async () => {
+				try {
+					await apiPatch(this.plugin.settings.serverUrl, `/session/${sid}`, { title: autoTitle });
+					if (sid === this.sessionId) {
+						const data = await this.plugin.loadPluginData();
+						const projectName = data.activeProject;
+						this.sessionLabel.setText(projectName ? `${projectName} / ${autoTitle}` : `Session: ${autoTitle}`);
+					}
+				} catch { /* ignore – rename is best-effort */ }
+			})();
+		}
+
 		this.textarea.value = '';
 		this._pendingMsgId = null;
 		this._activePartId = null;
@@ -2021,6 +2043,109 @@ class OpenCodeChatView extends ItemView {
 	}
 
 	// ── Export chat ───────────────────────────────────────────────────────────
+
+	private _safeFilename(title: string): string {
+		return title.replace(/[\\/:*?"<>|#^[\]]/g, '-').replace(/\s+/g, '-').toLowerCase().trim();
+	}
+
+	private async _getConversationNotePath(sessionId: string, sessionTitle: string): Promise<string> {
+		const cached = this._conversationNotePathMap.get(sessionId);
+		if (cached) return cached;
+		const exportFolder = (this.plugin.settings.exportFolder || 'conversations').replace(/\/$/, '');
+		const data = await this.plugin.loadPluginData();
+		const projectName = data.activeProject;
+		const projectsFolder = (this.plugin.settings.projectsFolder || 'projects').replace(/\/$/, '');
+		const folder = projectName
+			? `${projectsFolder}/${projectName}/${exportFolder}`
+			: exportFolder;
+		const safeName = this._safeFilename(sessionTitle || `session-${sessionId.slice(-8)}`);
+		const path = `${folder}/${safeName}.md`;
+		this._conversationNotePathMap.set(sessionId, path);
+		return path;
+	}
+
+	private async _autoLogConversation(sessionId: string): Promise<void> {
+		try {
+			// Fetch the last two messages (user + assistant) from the server.
+			// This is always authoritative and works for both visible and background sessions.
+			const messages = await apiGet(this.plugin.settings.serverUrl, `/session/${sessionId}/message`) as MessageInfo[];
+			if (!Array.isArray(messages) || messages.length === 0) return;
+
+			// Extract last user text and last assistant text
+			let lastUserText = '';
+			let lastAssistantText = '';
+			let sessionTitle = '';
+
+			for (const msg of messages) {
+				const role = msg.info?.role;
+				const parts = msg.parts || [];
+				if (parts.some(p => p.type === 'compaction')) continue;
+				if (role === 'user') {
+					const text = parts.filter(p => p.type === 'text' && p.text).map(p => p.text).join('');
+					const clean = text.replace(/<opencode-rules>[\s\S]*?<\/opencode-rules>\n*/g, '').trim();
+					if (clean) lastUserText = clean;
+				} else if (role === 'assistant') {
+					const text = parts.filter(p => p.type === 'text' && p.text).map(p => p.text).join('');
+					if (text) lastAssistantText = text;
+				}
+			}
+
+			if (!lastUserText || !lastAssistantText) return;
+
+			// Derive session title: prefer the label if this is the visible session,
+			// otherwise fetch from server
+			if (sessionId === this.sessionId) {
+				sessionTitle = this.sessionLabel.getText()
+					.replace(/^.*\/\s*/, '')
+					.replace(/^Session:\s*/i, '')
+					.trim();
+			}
+			if (!sessionTitle || sessionTitle === 'Initializing…' || sessionTitle === 'No active session' || sessionTitle === 'Creating new session…') {
+				try {
+					const info = await apiGet(this.plugin.settings.serverUrl, `/session/${sessionId}`) as { title?: string; slug?: string };
+					sessionTitle = info.title || info.slug || '';
+				} catch { /* ignore */ }
+			}
+			if (!sessionTitle) sessionTitle = `session-${sessionId.slice(-8)}`;
+
+			const notePath = await this._getConversationNotePath(sessionId, sessionTitle);
+			const folder = notePath.substring(0, notePath.lastIndexOf('/'));
+			const vault = this.app.vault;
+
+			// Ensure folder exists
+			if (!vault.getAbstractFileByPath(folder)) {
+				try { await vault.createFolder(folder); } catch { /* may already exist */ }
+			}
+
+			const entry = `**User:** ${lastUserText}\n\n**Assistant:** ${lastAssistantText}\n\n---\n`;
+
+			const existingFile = vault.getAbstractFileByPath(notePath);
+			if (existingFile instanceof TFile) {
+				const existing = await vault.read(existingFile);
+				await vault.modify(existingFile, existing + '\n' + entry);
+			} else {
+				const today = new Date().toISOString().slice(0, 10);
+				const data = await this.plugin.loadPluginData();
+				const projectName = data.activeProject;
+				const fm = [
+					'---',
+					`session: ${sessionId}`,
+					`created: ${today}`,
+					`project: ${projectName ?? 'null'}`,
+					'tags: [opencode, conversation]',
+					'---',
+					'',
+					`# ${sessionTitle}`,
+					'',
+					'## Transcript',
+					'',
+				].join('\n');
+				await vault.create(notePath, fm + entry);
+			}
+		} catch (e) {
+			console.warn('OpenCode Chat: auto-log failed', e);
+		}
+	}
 
 	async exportChatToNote() {
 		if (!this.sessionId) { new Notice('No active session'); return; }
