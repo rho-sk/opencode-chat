@@ -261,6 +261,8 @@ class OpenCodeChatView extends ItemView {
 	private _textareaScope: Scope | null = null;
 	private _watchdogTimer: ReturnType<typeof setTimeout> | null = null;
 	private _lastEventTime = 0;
+	// Per-session running state – tracks ALL running sessions, not just the visible one
+	private _sessionBusy: Map<string, boolean> = new Map();
 
 	// DOM refs
 	sessionLabel!: HTMLElement;
@@ -273,6 +275,8 @@ class OpenCodeChatView extends ItemView {
 	sendBtn!: HTMLButtonElement;
 	cancelBtn!: HTMLButtonElement;
 	resetBtn!: HTMLButtonElement;
+	// Buttons to disable during busy
+	private _busyDisabled: (HTMLElement | HTMLSelectElement)[] = [];
 
 	constructor(leaf: WorkspaceLeaf, plugin: OpenCodeChatPlugin) {
 		super(leaf);
@@ -413,6 +417,10 @@ class OpenCodeChatView extends ItemView {
 			void this._finalizeStream();
 			this.appendSystemMsg('UI state reset manually.');
 		});
+
+		// Elements to disable while a generation is running
+		// histBtn intentionally excluded — must remain clickable even when busy (allows switching sessions if stream gets stuck)
+		this._busyDisabled = [newBtn, assignBtn, deleteCurBtn, this.projectSelect];
 
 		// Messages
 		this.messagesEl = root.createDiv({ cls: 'opencode-chat-messages' });
@@ -625,11 +633,12 @@ class OpenCodeChatView extends ItemView {
 	private async _doAssignToProject(projectName: string) {
 		if (!this.sessionId) return;
 		const projectPath = `${this.plugin.settings.projectsFolder}/${projectName}`;
-		const data = await this.plugin.loadPluginData();
 		const parentId = await this.plugin.getOrCreateProjectSession(projectName, projectPath);
 		try {
 			await apiPatch(this.plugin.settings.serverUrl, `/session/${this.sessionId}`, { parentID: parentId });
 		} catch { /* server may not support parentID patch */ }
+		// Load data AFTER getOrCreateProjectSession to avoid overwriting its saved projectSessions
+		const data = await this.plugin.loadPluginData();
 		data.activeProject = projectName;
 		await this.plugin.savePluginData(data);
 		await this.refreshProjectSelect();
@@ -770,12 +779,29 @@ class OpenCodeChatView extends ItemView {
 		this.agentPlan.classList.toggle('is-active', name === 'plan');
 	}
 
-	setBusy(busy: boolean) {
-		this._busy = busy;
+	// Pure UI update – does not touch _busy or _sessionBusy map
+	private _applyBusyUI(busy: boolean) {
 		this.textarea.disabled = busy;
 		this.sendBtn.classList.toggle('opencode-hidden', busy);
 		this.cancelBtn.classList.toggle('opencode-hidden', !busy);
 		this.resetBtn.classList.toggle('opencode-hidden', !busy);
+		for (const el of this._busyDisabled) {
+			el.classList.toggle('opencode-busy-disabled', busy);
+			if (el instanceof HTMLSelectElement) el.disabled = busy;
+		}
+	}
+
+	setBusy(busy: boolean, sessionId?: string) {
+		const sid = sessionId ?? this.sessionId;
+		// Update per-session state map
+		if (sid) {
+			if (busy) this._sessionBusy.set(sid, true);
+			else this._sessionBusy.delete(sid);
+		}
+		// Only update UI if this concerns the currently visible session
+		if (sid && sid !== this.sessionId) return;
+		this._busy = busy;
+		this._applyBusyUI(busy);
 		if (busy) this._resetWatchdog();
 		else this._stopWatchdog();
 	}
@@ -876,8 +902,47 @@ class OpenCodeChatView extends ItemView {
 		// Reset watchdog on every event while busy
 		if (this._busy) this._resetWatchdog();
 
-		// Ignore events from other sessions
 		const evtSession = p.sessionID || p.info?.sessionID || p.part?.sessionID;
+
+		// Track running state for ALL sessions (not just visible one)
+		if (type === 'session.idle') {
+			const sid = p.sessionID;
+			if (sid) {
+				this.setBusy(false, sid);
+				if (sid === this.sessionId) {
+					void this._finalizeStream();
+					if (this._onIdleCallback) {
+						const cb = this._onIdleCallback;
+						this._onIdleCallback = null;
+						cb();
+					}
+				}
+			}
+			return;
+		}
+
+		if (type === 'session.error') {
+			const sid = p.sessionID || this.sessionId;
+			if (sid) this.setBusy(false, sid);
+			if (!evtSession || evtSession === this.sessionId) {
+				const err = p.error;
+				const msg = err?.data?.message || err?.message || JSON.stringify(err) || 'Unknown error';
+				void this._finalizeStream();
+				this.appendSystemMsg(`Error: ${msg}`);
+			}
+			return;
+		}
+
+		if (type === 'session.status') {
+			const sid = p.sessionID;
+			if (sid && p.status?.type === 'idle') {
+				this.setBusy(false, sid);
+				if (sid === this.sessionId && this._busy) void this._finalizeStream();
+			}
+			return;
+		}
+
+		// Ignore remaining events from other sessions
 		if (evtSession && evtSession !== this.sessionId) return;
 
 		if (type === 'message.part.updated') {
@@ -929,26 +994,6 @@ class OpenCodeChatView extends ItemView {
 			return;
 		}
 
-		if (type === 'session.error') {
-			if (this._busy) {
-				const err = p.error;
-				const msg = err?.data?.message || err?.message || JSON.stringify(err) || 'Unknown error';
-				void this._finalizeStream();
-				this.appendSystemMsg(`Error: ${msg}`);
-			}
-			return;
-		}
-
-		if (type === 'session.idle' && p.sessionID === this.sessionId) {
-			void this._finalizeStream();
-			if (this._onIdleCallback) {
-				const cb = this._onIdleCallback;
-				this._onIdleCallback = null;
-				cb();
-			}
-			return;
-		}
-
 		if (type === 'session.updated' && p.info?.id === this.sessionId) {
 			const title = p.info.title || p.info.slug;
 			if (title) {
@@ -969,6 +1014,8 @@ class OpenCodeChatView extends ItemView {
 			const deletedId = p.info?.id;
 			const picker = document.querySelector('.opencode-session-picker');
 			if (picker) { picker.remove(); void this.showSessionPicker(); }
+			// Clean up busy map for deleted session
+			if (deletedId) this._sessionBusy.delete(deletedId);
 			if (deletedId && deletedId === this.sessionId) {
 				this._stopSSE();
 				this.sessionId = null;
@@ -1020,10 +1067,6 @@ class OpenCodeChatView extends ItemView {
 		if (type === 'question.asked' && p.sessionID === this.sessionId) {
 			this._showQuestionDialog(p);
 			return;
-		}
-
-		if (type === 'session.status' && p.sessionID === this.sessionId) {
-			if (p.status?.type === 'idle' && this._busy) void this._finalizeStream();
 		}
 
 		if (type === 'server.heartbeat') {
@@ -1706,10 +1749,28 @@ class OpenCodeChatView extends ItemView {
 
 	async loadSession(id: string, slug: string) {
 		this._stopSSE();
+
+		// Reset UI only if the outgoing session was actually busy
+		// (state stays in _sessionBusy map for when we return)
+		if (this._busy) {
+			this._busy = false;
+			this._applyBusyUI(false);
+			this._stopWatchdog();
+		}
+
 		this.sessionId = id;
 		this.messagesEl.empty();
 		this._exportedMsgCount = 0;
 		this._exportLog = [];
+
+		// Apply busy UI immediately based on known map state
+		const isBusy = this._sessionBusy.get(id) ?? false;
+		this._busy = isBusy;
+		this._applyBusyUI(isBusy);
+		if (isBusy) {
+			this._resetWatchdog();
+			this.appendSystemMsg('Session is running…');
+		}
 
 		// If this session belongs to a project, update the dropdown to reflect it
 		try {
