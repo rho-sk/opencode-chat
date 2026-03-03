@@ -502,10 +502,7 @@ class OpenCodeChatView extends ItemView {
 			if (!resizing) return;
 			const newH = Math.max(240, resizeStartH + (e.clientY - resizeStartY));
 			const newW = Math.max(400, Math.min(window.innerWidth - 48, resizeStartW + (e.clientX - resizeStartX)));
-			modal.style.height = newH + 'px';
-			modal.style.maxHeight = newH + 'px';
-			modal.style.width = newW + 'px';
-			modal.style.maxWidth = newW + 'px';
+			modal.setCssProps({ 'height': newH + 'px', 'max-height': newH + 'px', 'width': newW + 'px', 'max-width': newW + 'px' });
 		};
 
 		let suppressNextClick = false;
@@ -1032,9 +1029,7 @@ class OpenCodeChatView extends ItemView {
 			.addEventListener('click', () => { void reply('reject'); });
 
 		const rect = this.containerEl.getBoundingClientRect();
-		dialog.style.top = `${rect.top + 80}px`;
-		dialog.style.left = `${rect.left + 10}px`;
-		dialog.style.width = `${Math.min(380, rect.width - 20)}px`;
+		dialog.setCssProps({ 'top': `${rect.top + 80}px`, 'left': `${rect.left + 10}px`, 'width': `${Math.min(380, rect.width - 20)}px` });
 
 		this.appendSystemMsg(`⚠ Permission required: ${description}`);
 	}
@@ -1121,9 +1116,7 @@ class OpenCodeChatView extends ItemView {
 		})(); });
 
 		const rect = this.containerEl.getBoundingClientRect();
-		dialog.style.top = `${rect.top + 80}px`;
-		dialog.style.left = `${rect.left + 10}px`;
-		dialog.style.width = `${Math.min(420, rect.width - 20)}px`;
+		dialog.setCssProps({ 'top': `${rect.top + 80}px`, 'left': `${rect.left + 10}px`, 'width': `${Math.min(420, rect.width - 20)}px` });
 	}
 
 	// ── Stream rendering ──────────────────────────────────────────────────────
@@ -1286,9 +1279,7 @@ class OpenCodeChatView extends ItemView {
 		});
 
 		const rect = this.containerEl.getBoundingClientRect();
-		dialog.style.top = `${rect.top + 50}px`;
-		dialog.style.left = `${rect.left + 10}px`;
-		dialog.style.width = `${Math.min(360, rect.width - 20)}px`;
+		dialog.setCssProps({ 'top': `${rect.top + 50}px`, 'left': `${rect.left + 10}px`, 'width': `${Math.min(360, rect.width - 20)}px` });
 
 		setTimeout(() => {
 			document.addEventListener('click', function handler(e) {
@@ -1354,9 +1345,7 @@ class OpenCodeChatView extends ItemView {
 		cancelBtn.addEventListener('click', close);
 
 		const rect = this.containerEl.getBoundingClientRect();
-		dialog.style.top = `${rect.top + 100}px`;
-		dialog.style.left = `${rect.left + 10}px`;
-		dialog.style.width = `${Math.min(360, rect.width - 20)}px`;
+		dialog.setCssProps({ 'top': `${rect.top + 100}px`, 'left': `${rect.left + 10}px`, 'width': `${Math.min(360, rect.width - 20)}px` });
 
 		setTimeout(() => {
 			outsideClickEnabled = true;
@@ -1422,9 +1411,7 @@ class OpenCodeChatView extends ItemView {
 			closeBtn.addEventListener('click', () => picker.remove());
 
 			const rect = this.containerEl.getBoundingClientRect();
-			picker.style.top = `${rect.top + 50}px`;
-			picker.style.left = `${rect.left + 10}px`;
-			picker.style.width = `${Math.min(420, rect.width - 20)}px`;
+			picker.setCssProps({ 'top': `${rect.top + 50}px`, 'left': `${rect.left + 10}px`, 'width': `${Math.min(420, rect.width - 20)}px` });
 
 			setTimeout(() => {
 				document.addEventListener('click', function handler(e) {
