@@ -644,8 +644,10 @@ class OpenCodeChatView extends ItemView {
 		data.activeProject = projectName;
 		await this.plugin.savePluginData(data);
 		await this.refreshProjectSelect();
-		const ctx = `<opencode-project-context>\nYou are working in project: ${projectName} (vault path: ${projectPath}). All notes, tasks and files created in this session belong to this project.\n</opencode-project-context>`;
-		this._pendingRules = (this._pendingRules ? this._pendingRules + '\n\n' : '') + ctx;
+		const allRules = await this.loadAllRules(projectName);
+		if (allRules) {
+			this._pendingRules = (this._pendingRules ? this._pendingRules + '\n\n' : '') + allRules;
+		}
 		this._updateSessionLabel();
 		new Notice(`Session assigned to project: ${projectName}`);
 	}
@@ -1438,16 +1440,12 @@ class OpenCodeChatView extends ItemView {
 
 	// ── Rules ─────────────────────────────────────────────────────────────────
 
-	async loadRules(): Promise<string | null> {
-		const rulesPath = (this.plugin.settings.rulesPath || '').trim();
+	/** Read rules from a single vault path (file or folder of .md files). */
+	private async _readRulesFromPath(rulesPath: string): Promise<string | null> {
 		if (!rulesPath) return null;
-
 		const vault = this.app.vault;
 		const abstract = vault.getAbstractFileByPath(rulesPath);
-		if (!abstract) {
-			console.warn(`OpenCode Chat: rules path not found: ${rulesPath}`);
-			return null;
-		}
+		if (!abstract) return null;
 
 		if (abstract instanceof TFile) {
 			try { return await vault.read(abstract); }
@@ -1470,6 +1468,50 @@ class OpenCodeChatView extends ItemView {
 		return null;
 	}
 
+	/** Load global rules (from settings.rulesPath). */
+	async loadRules(): Promise<string | null> {
+		const rulesPath = (this.plugin.settings.rulesPath || '').trim();
+		if (!rulesPath) return null;
+		const result = await this._readRulesFromPath(rulesPath);
+		if (!result) console.warn(`OpenCode Chat: rules path not found: ${rulesPath}`);
+		return result;
+	}
+
+	/**
+	 * Load project-level rules.
+	 * Looks for the same rules path (folder name or file name) inside the project folder.
+	 * E.g. if rulesPath = "x-ai-rules" and projectPath = "projects/my-project",
+	 * it checks "projects/my-project/x-ai-rules".
+	 */
+	async loadProjectRules(projectPath: string): Promise<string | null> {
+		const rulesPath = (this.plugin.settings.rulesPath || '').trim();
+		if (!rulesPath || !projectPath) return null;
+		// Use only the last segment of rulesPath as the folder/file name inside the project
+		const rulesName = rulesPath.split('/').pop() ?? rulesPath;
+		const projectRulesPath = `${projectPath}/${rulesName}`;
+		return this._readRulesFromPath(projectRulesPath);
+	}
+
+	/**
+	 * Load all rules: global rules + project-level rules (if projectName provided).
+	 * Also appends the project context block when projectName is given.
+	 * This is the single entry point used by initSession and _doAssignToProject.
+	 */
+	async loadAllRules(projectName: string | null): Promise<string | null> {
+		const globalRules = await this.loadRules();
+		let projectRules: string | null = null;
+		let projectCtx: string | null = null;
+
+		if (projectName) {
+			const projectPath = `${this.plugin.settings.projectsFolder}/${projectName}`;
+			projectRules = await this.loadProjectRules(projectPath);
+			projectCtx = `<opencode-project-context>\nYou are working in project: ${projectName} (vault path: ${projectPath}). All notes, tasks and files created in this session belong to this project.\n</opencode-project-context>`;
+		}
+
+		const parts = [globalRules, projectRules, projectCtx].filter(Boolean) as string[];
+		return parts.length ? parts.join('\n\n') : null;
+	}
+
 	// ── Session management ────────────────────────────────────────────────────
 
 	async initSession() {
@@ -1490,14 +1532,7 @@ class OpenCodeChatView extends ItemView {
 			this.sessionLabel.setText(projectName ? `${projectName} / ${title}` : `Session: ${title}`);
 			this.messagesEl.empty();
 			this._startSSE();
-			const rules = await this.loadRules();
-			let pendingRules = rules || null;
-			if (projectName) {
-				const projectPath = `${this.plugin.settings.projectsFolder}/${projectName}`;
-				const ctx = `<opencode-project-context>\nYou are working in project: ${projectName} (vault path: ${projectPath}). All notes, tasks and files created in this session belong to this project.\n</opencode-project-context>`;
-				pendingRules = pendingRules ? `${pendingRules}\n\n${ctx}` : ctx;
-			}
-			this._pendingRules = pendingRules;
+			this._pendingRules = await this.loadAllRules(projectName ?? null);
 			this.appendSystemMsg('Session ready. Type your message below.');
 		} catch (e) {
 			this.sessionLabel.setText('Error: cannot connect');
