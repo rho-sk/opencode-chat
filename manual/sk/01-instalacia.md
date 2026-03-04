@@ -407,16 +407,23 @@ Expand-Archive -Path opencode-chat-v*.zip -DestinationPath C:\CESTA\K\VAULTU\.ob
 
 **Settings** → **OpenCode Chat**
 
-| Nastavenie | Hodnota |
-|---|---|
-| Server URL | `http://localhost:4096` |
-| Default model | závisí od LLM providera (napr. `amazon-bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0`) |
+| Nastavenie | Predvolená hodnota | Popis |
+|---|---|---|
+| Server URL | `http://localhost:4096` | Adresa OpenCode servera |
+| Default model | *(prázdne)* | napr. `amazon-bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0` |
+| Default agent | `build` | `build` = môže editovať súbory; `plan` = len plánuje |
+| Rules path | `system` | Priečinok alebo súbor s pravidlami pre agenta |
+| Send shortcut | `Ctrl+Enter` | Skratka na odoslanie správy (`Ctrl+Enter` alebo `Alt+Enter`) |
+| Export folder | `conversations` | Kam sa ukladajú exportované chaty a automatické záznamy konverzácií |
+| Projects folder | `projects` | Kde máš svoje projekty vo vaulte |
 
 Klikni na tlačidlo **Test connection**.
 
 Ak všetko funguje, uvidíš: ✅ `Connected! OpenCode v1.x.x`
 
 **✅ Checkpoint:** Plugin sa úspešne pripojil k OpenCode serveru.
+
+> **Automaticky generovaný súbor pravidiel:** Plugin pri každom štarte (a pri zmene nastavení) zapíše súbor `system/opencode-chat-settings.md` s aktuálnymi hodnotami pre Projects folder, Export folder a Rules path. Keďže `Rules path` defaultne ukazuje na priečinok `system/`, tento súbor sa automaticky načíta ako súčasť pravidiel na začiatku každej session. Needituj ho ručne — zmeny sa prepíšu.
 
 ---
 
@@ -507,6 +514,6 @@ Teraz si pripravený používať OpenCode Chat naplno!
 
 ---
 
-**Verzia:** 1.1
-**Dátum:** 2026-03-01
-**Plugin verzia:** 1.3.23
+**Verzia:** 1.2
+**Dátum:** 2026-03-04
+**Plugin verzia:** 1.3.42

@@ -8,7 +8,7 @@ tags:
 ---
 # OpenCode Chat – Bežné používanie
 
-Tento dokument popisuje best practices, odporúčané pluginy a workflow pre efektívnu prácu s OpenCode Chat.
+Tento dokument popisuje rozhranie pluginu, best practices, odporúčané pluginy a workflow pre efektívnu prácu s OpenCode Chat.
 
 > **Chceš hotový vault setup s templates, rules a Bedrock konfiguráciou?**
 > Pozri **[opencode-obsidian-ai-workspace](https://github.com/rho-sk/opencode-obsidian-ai-workspace)** – obsahuje kompletný setup pripravený na použitie.
@@ -16,6 +16,106 @@ Tento dokument popisuje best practices, odporúčané pluginy a workflow pre efe
 **Súvisiace dokumenty:**
 - [[00-uvod]] – Úvod a prehľad
 - [[01-instalacia]] – Inštalačný návod
+
+---
+
+## Prehľad rozhrania
+
+### Header (horný panel)
+
+```
+[ projekt ▾ ] [ Session: nazov-session  ▾ ]  [ model ▾ ] [ build | plan ]  [ + ] [ ⟳ ]
+```
+
+| Prvok | Popis |
+|---|---|
+| **Projekt dropdown** | Priradí session k projektu (alebo `— no project —`). Pri prepnutí sa načíta posledná session daného projektu. |
+| **Session label / history** | Zobrazuje názov aktuálnej session. Kliknutím otvorí **session picker** – zoznam posledných sessions s možnosťou prepnutia. |
+| **Model dropdown** | Výber LLM modelu pre aktuálnu session. |
+| **build / plan** | Prepínač agenta. `build` = môže editovať súbory; `plan` = len plánuje a navrhuje. |
+| **[+]** | Vytvorí novú session. |
+| **[⟳]** | Núdzový reset – zobrazí sa len počas generovania. Odblokuje UI ak agent zamrzol. |
+
+### Oblasť správ
+
+- **Správy používateľa** – zobrazené v bubble, s tlačidlom kopírovania.
+- **Odpovede agenta** – renderované ako Markdown (bold, code, tabuľky, ...).
+- **Tool activity** – každý nástroj (čítanie/zápis súboru, bash príkaz, ...) sa zobrazí ako rozbaľovací riadok s výsledkom.
+- **Reasoning (Thinking)** – ak model podporuje extended thinking (napr. Claude 3.7 Sonnet), zobrazí sa skladací blok „Thinking" s priebehom uvažovania.
+- **Step separator** – tenká čiara oddeľuje jednotlivé kroky multi-step odpovede.
+- **Step cost** – po každom kroku sa zobrazí spotreba tokenov a cena (napr. `$0.004 · 1 234 tokens ↑891 ↓343`).
+- **Retry notice** – oranžová notifikácia ak API zlyhal a agent skúša znova.
+- **Todo list** – ak agent používa TodoWrite nástroj, zobrazí sa inline zoznam úloh s progress indikátorom.
+- **Permission dialog** – ak agent potrebuje zápis mimo pracovného adresára, zobrazí sa dialóg s možnosťami Allow once / Allow always / Deny.
+- **Question dialog** – ak agent kladie štruktúrovanú otázku (výber možností), zobrazí sa dialóg s výberom.
+
+### Input area (dolný panel)
+
+```
+[ textarea                              ] [ ↓ ] [ ⤢ ]
+                                          [ ■ ] [ ➤ ]
+```
+
+| Prvok | Popis |
+|---|---|
+| **Textarea** | Pole pre zadávanie správy. Automaticky sa rozťahuje. Odosielanie: `Ctrl+Enter` (alebo `Alt+Enter` podľa nastavenia). |
+| **[↓] Export** | Ručný export chatu do Obsidian poznámky (inkrementálny – exportuje len nové správy od posledného exportu). |
+| **[⤢] Expand** | Otvorí rozšírený editor (väčšia textarea, drag resize v pravom dolnom rohu). |
+| **[■] Cancel** | Zastaví prebiehajúce generovanie. Zobrazí sa len počas behu. |
+| **[➤] Send** | Odošle správu. Zobrazí sa len mimo generovania. |
+
+---
+
+## Sessions a projekty
+
+### Sessions
+
+Každý rozhovor prebieha v **session**. Session si pamätá celú históriu správ.
+
+- **Nová session** – tlačidlo `[+]` vytvorí prázdnu session.
+- **Prepínanie sessions** – klik na session label otvorí picker so zoznamom posledných sessions. Medzi sessions možno prepínať aj kým niektorá ešte beží na pozadí.
+- **Premenovanie session** – klik na session label v pickeri → ikona ceruzky → zadaj nový názov. Plugin tiež automaticky pomenuje session podľa prvých ~6 slov tvojej prvej správy.
+- **Mazanie session** – v pickeri ikona koša.
+
+### Projekty
+
+Sessions možno priradiť k **projektu**:
+
+1. Vyber projekt z dropdown menu v headeri (projekty sa načítavajú z nastavenia **Projects folder**, napr. `projects/`).
+2. Session sa automaticky priradí k projektu — OpenCode dostane kontext, že pracuje v danom projekte.
+3. Pri prepnutí projektu sa načíta posledná session priradená k nemu.
+4. Výber `— no project —` načíta poslednú session bez projektu.
+
+### Automatický záznam konverzácie
+
+Po každej odpovedi agenta plugin automaticky zapíše výmenu správ do Markdown súboru:
+
+- **Session bez projektu:** `[Export folder]/[nazov-session].md`
+- **Session s projektom:** `[Projects folder]/[projekt]/[Export folder]/[nazov-session].md`
+
+Súbor obsahuje YAML frontmatter (`session`, `created`, `project`, `tags`) a sekciu `## Transcript` s formátom:
+
+```markdown
+**User:** [správa používateľa]
+
+**Assistant:** [odpoveď agenta]
+
+---
+```
+
+Súbor sa vytvorí automaticky pri prvom zápise a ďalšie výmeny sa appendujú.
+
+---
+
+## Počas generovania
+
+Kým agent pracuje:
+
+- Tlačidlá New session, session history, projekt dropdown, Delete session sú **zakázané** (predchádza neúmyselným akciám).
+- Tlačidlo **[■] Cancel** zastaví generovanie.
+- Tlačidlo **[⟳] Reset** v headeri odblokuje UI ak agent zamrzol alebo stratil spojenie.
+- Watchdog timer (30 s bez aktivity) automaticky synchronizuje stav so serverom.
+- Ak bežia **viaceré sessions paralelne**, každá má vlastný busy stav — prepnutie na inú session nezruší bežiacu.
 
 ---
 
@@ -275,11 +375,15 @@ tags:
 
 ## Nastavenie System Rules
 
-System rules definujú, ako má AI agent pracovať s tvojim vaultom.
+System rules definujú, ako má AI agent pracovať s tvojim vaultom. Plugin automaticky načíta všetky `.md` súbory z priečinka nastaveného v **Rules path** (default: `system/`) a pošle ich ako kontext na začiatku každej novej session.
+
+### Automaticky generovaný `system/opencode-chat-settings.md`
+
+Plugin pri každom štarte a pri každej zmene nastavení (Projects folder, Export folder, Rules path) automaticky zapíše/prepíše súbor `system/opencode-chat-settings.md` s aktuálnymi hodnotami. Tento súbor agent číta ako súčasť pravidiel, takže vždy vie, kde hľadať projekty a exporty. **Needituj ho manuálne** — pri ďalšom načítaní pluginu sa prepíše.
 
 ### Základný `system/opencode-rules.md`
 
-Tento súbor už máš vytvorený z inštalácie. Môžeš ho rozšíriť o vlastné pravidlá:
+Tento súbor môžeš vytvoriť a rozšíriť o vlastné pravidlá:
 
 #### Pridanie vlastných pravidiel
 
@@ -847,6 +951,6 @@ OpenCode nepobehá limit na sessions. História zobrazuje posledných 20.
 
 ---
 
-**Verzia:** 1.0  
-**Dátum:** 2026-02-28  
-**Plugin verzia:** 1.2.9
+**Verzia:** 2.0
+**Dátum:** 2026-03-04
+**Plugin verzia:** 1.3.42
