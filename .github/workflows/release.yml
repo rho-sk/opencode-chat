@@ -36,19 +36,28 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git checkout origin/main -- versions.json
           VERSION=${{ steps.version.outputs.version }}
           MIN_APP=$(node -e "process.stdout.write(require('./src/manifest.json').minAppVersion)")
-          node -e "
-            const fs = require('fs');
-            const v = JSON.parse(fs.readFileSync('versions.json', 'utf8'));
-            v['${VERSION}'] = '${MIN_APP}';
-            fs.writeFileSync('versions.json', JSON.stringify(v, null, 2) + '\n');
-          "
-          git add versions.json
-          git diff --staged --quiet || git commit -m "chore: update versions.json for ${{ steps.version.outputs.version }}"
-          git push origin HEAD:main
+          # Retry loop: fetch latest main, apply change, push – retry on non-fast-forward
+          for i in 1 2 3; do
+            git fetch origin main
+            git checkout origin/main -- versions.json
+            node -e "
+              const fs = require('fs');
+              const v = JSON.parse(fs.readFileSync('versions.json', 'utf8'));
+              v['${VERSION}'] = '${MIN_APP}';
+              fs.writeFileSync('versions.json', JSON.stringify(v, null, 2) + '\n');
+            "
+            git add versions.json
+            if git diff --staged --quiet; then
+              echo "versions.json already up to date"
+              break
+            fi
+            git commit -m "chore: update versions.json for ${{ steps.version.outputs.version }}"
+            git push origin HEAD:main && break || git reset --soft HEAD~1
+            echo "Push failed (attempt $i), retrying..."
+            sleep 3
+          done
 
       - name: Create release ZIP
         run: |
