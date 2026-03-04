@@ -374,14 +374,14 @@ Go to **Settings → OpenCode Chat**.
 | Server URL | `http://localhost:4096` | Address of the OpenCode server |
 | Default model | *(empty)* | e.g. `amazon-bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0` |
 | Default agent | `build` | `build` = can edit files; `plan` = plans only |
-| Rules path | `system` | Folder or file with agent rules |
+| Rules path | `x-ai-rules` | Folder or file with agent rules |
 | Send shortcut | `Ctrl+Enter` | Keyboard shortcut to send (`Ctrl+Enter` or `Alt+Enter`) |
 | Export folder | `conversations` | Where exported chats and automatic conversation logs are saved |
 | Projects folder | `projects` | Where your projects live in the vault |
 
 Click **Test connection**. If everything is working, you'll see: `Connected! OpenCode v1.x.x`
 
-> **Auto-generated settings file:** On every load (and when settings change), the plugin writes `system/opencode-chat-settings.md` with the current values for Projects folder, Export folder, and Rules path. Because Rules path defaults to the `system/` folder, this file is automatically loaded as part of the agent rules at the start of every session. Do not edit it manually — changes will be overwritten.
+> **Auto-generated settings file:** On every load (and when settings change), the plugin writes `x-ai-rules/opencode-chat-settings.md` with the current values for Projects folder, Export folder, and Rules path. Because Rules path defaults to the `x-ai-rules/` folder, this file is automatically loaded as part of the agent rules at the start of every session. Do not edit it manually — changes will be overwritten.
 
 ---
 

@@ -412,7 +412,7 @@ Expand-Archive -Path opencode-chat-v*.zip -DestinationPath C:\CESTA\K\VAULTU\.ob
 | Server URL | `http://localhost:4096` | Adresa OpenCode servera |
 | Default model | *(prázdne)* | napr. `amazon-bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0` |
 | Default agent | `build` | `build` = môže editovať súbory; `plan` = len plánuje |
-| Rules path | `system` | Priečinok alebo súbor s pravidlami pre agenta |
+| Rules path | `x-ai-rules` | Priečinok alebo súbor s pravidlami pre agenta |
 | Send shortcut | `Ctrl+Enter` | Skratka na odoslanie správy (`Ctrl+Enter` alebo `Alt+Enter`) |
 | Export folder | `conversations` | Kam sa ukladajú exportované chaty a automatické záznamy konverzácií |
 | Projects folder | `projects` | Kde máš svoje projekty vo vaulte |
@@ -423,7 +423,7 @@ Ak všetko funguje, uvidíš: ✅ `Connected! OpenCode v1.x.x`
 
 **✅ Checkpoint:** Plugin sa úspešne pripojil k OpenCode serveru.
 
-> **Automaticky generovaný súbor pravidiel:** Plugin pri každom štarte (a pri zmene nastavení) zapíše súbor `system/opencode-chat-settings.md` s aktuálnymi hodnotami pre Projects folder, Export folder a Rules path. Keďže `Rules path` defaultne ukazuje na priečinok `system/`, tento súbor sa automaticky načíta ako súčasť pravidiel na začiatku každej session. Needituj ho ručne — zmeny sa prepíšu.
+> **Automaticky generovaný súbor pravidiel:** Plugin pri každom štarte (a pri zmene nastavení) zapíše súbor `x-ai-rules/opencode-chat-settings.md` s aktuálnymi hodnotami pre Projects folder, Export folder a Rules path. Keďže `Rules path` defaultne ukazuje na priečinok `x-ai-rules/`, tento súbor sa automaticky načíta ako súčasť pravidiel na začiatku každej session. Needituj ho ručne — zmeny sa prepíšu.
 
 ---
 

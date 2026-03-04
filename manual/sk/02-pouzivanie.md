@@ -121,7 +121,7 @@ Kým agent pracuje:
 
 ## Odporúčané Obsidian pluginy
 
-Pre optimálnu prácu s OpenCode Chat odporúčame nainštalovať tieto pluginy:
+Pre optimálnu prácu s OpenCode Chat odporúčame nainštalovať tieto pluginy,  nie su však nutné:
 
 ### 1. **Templater** (Community plugin)
 
@@ -133,7 +133,7 @@ Pre optimálnu prácu s OpenCode Chat odporúčame nainštalovať tieto pluginy:
 3. **Install** → **Enable**
 
 **Konfigurácia:**
-- **Settings → Templater → Template folder location:** `templates`
+- **Settings → Templater → Template folder location:** `x-ai-templates`
 - Zapni **Trigger Templater on new file creation**
 
 **Použitie:**
@@ -246,7 +246,7 @@ Templates sú kľúčové pre konzistentnú organizáciu poznámok.
 ### Štruktúra templates priečinka
 
 ```
-templates/
+x-ai-templates/
 ├── project.md          # Projektová poznámka
 ├── task.md             # Úloha
 ├── note.md             # Voľná poznámka
@@ -259,7 +259,7 @@ templates/
 
 ### Rozšírené šablóny
 
-#### `templates/conversation.md`
+#### `x-ai-templates/conversation.md`
 
 ```markdown
 ---
@@ -295,7 +295,7 @@ tags:
 - 
 ```
 
-#### `templates/decision.md`
+#### `x-ai-templates/decision.md`
 
 ```markdown
 ---
@@ -341,7 +341,7 @@ tags:
 - 
 ```
 
-#### `templates/daily.md`
+#### `x-ai-templates/daily.md`
 
 ```markdown
 ---
@@ -375,13 +375,13 @@ tags:
 
 ## Nastavenie System Rules
 
-System rules definujú, ako má AI agent pracovať s tvojim vaultom. Plugin automaticky načíta všetky `.md` súbory z priečinka nastaveného v **Rules path** (default: `system/`) a pošle ich ako kontext na začiatku každej novej session.
+System rules definujú, ako má AI agent pracovať s tvojim vaultom. Plugin automaticky načíta všetky `.md` súbory z priečinka nastaveného v **Rules path** (default: `x-ai-rules/`) a pošle ich ako kontext na začiatku každej novej session.
 
-### Automaticky generovaný `system/opencode-chat-settings.md`
+### Automaticky generovaný `x-ai-rules/opencode-chat-settings.md`
 
-Plugin pri každom štarte a pri každej zmene nastavení (Projects folder, Export folder, Rules path) automaticky zapíše/prepíše súbor `system/opencode-chat-settings.md` s aktuálnymi hodnotami. Tento súbor agent číta ako súčasť pravidiel, takže vždy vie, kde hľadať projekty a exporty. **Needituj ho manuálne** — pri ďalšom načítaní pluginu sa prepíše.
+Plugin pri každom štarte a pri každej zmene nastavení (Projects folder, Export folder, Rules path) automaticky zapíše/prepíše súbor `x-ai-rules/opencode-chat-settings.md` s aktuálnymi hodnotami. Tento súbor agent číta ako súčasť pravidiel, takže vždy vie, kde hľadať projekty a exporty. **Needituj ho manuálne** — pri ďalšom načítaní pluginu sa prepíše.
 
-### Základný `system/opencode-rules.md`
+### Základný `x-ai-rules/opencode-rules.md`
 
 Tento súbor môžeš vytvoriť a rozšíriť o vlastné pravidlá:
 
@@ -427,7 +427,7 @@ Tento súbor môžeš vytvoriť a rozšíriť o vlastné pravidlá:
 Pred prvým použitím v novej session:
 
 ```
-Prečítaj pravidlá z system/opencode-rules.md a dodržuj ich pri všetkých operáciách s poznámkami
+Prečítaj pravidlá z x-ai-rules/opencode-rules.md a dodržuj ich pri všetkých operáciách s poznámkami
 ```
 
 AI si prečíta pravidlá a bude ich aplikovať počas celej session.
@@ -435,9 +435,9 @@ AI si prečíta pravidlá a bude ich aplikovať počas celej session.
 **Tip:** Môžeš vytvoriť skratku alebo alias v Templater:
 
 ```markdown
-<!-- V templates/conversation.md -->
+<!-- V x-ai-templates/conversation.md -->
 
-**System prompt:** Prečítaj `system/opencode-rules.md` a dodržuj pravidlá.
+**System prompt:** Prečítaj `x-ai-rules/opencode-rules.md` a dodržuj pravidlá.
 ```
 
 ---
@@ -447,7 +447,7 @@ AI si prečíta pravidlá a bude ich aplikovať počas celej session.
 ### 1. Vytváranie projektov
 
 ```
-👤: Vytvor nový projekt "mobilná aplikácia" podľa šablóny templates/project.md
+👤: Vytvor nový projekt "mobilná aplikácia" podľa šablóny x-ai-templates/project.md
 
 🤖: *Načíta šablónu, vyplní:*
    - title: Mobilná aplikácia
@@ -538,7 +538,7 @@ AI si prečíta pravidlá a bude ich aplikovať počas celej session.
 ### 6. Automatizované daily notes
 
 ```
-👤: Vytvor daily note pre dnes podľa templates/daily.md
+👤: Vytvor daily note pre dnes podľa x-ai-templates/daily.md
 
 🤖: *Načíta šablónu*
    *Vyplní {{date}}, {{yesterday}}, {{tomorrow}}*
@@ -564,7 +564,7 @@ AI si prečíta pravidlá a bude ich aplikovať počas celej session.
 ### 1. Používaj System Prompt v každej novej session
 
 ```
-Prečítaj system/opencode-rules.md a dodržuj pravidlá
+Prečítaj x-ai-rules/opencode-rules.md a dodržuj pravidlá
 ```
 
 Alebo vytvor skratkový alias v Templater.
@@ -653,12 +653,12 @@ AI môže automaticky nájsť súvisiace poznámky:
 
 ### 6. Verzionuj dôležité rozhodnutia
 
-Pre dôležité rozhodnutia používaj `templates/decision.md` (ADR štýl).
+Pre dôležité rozhodnutia používaj `x-ai-templates/decision.md` (ADR štýl).
 
 ```
 👤: Vytvor decision record pre rozhodnutie použiť Amazon Bedrock namiesto OpenAI
 
-🤖: *Načíta templates/decision.md*
+🤖: *Načíta x-ai-templates/decision.md*
    *Vyplní kontext, alternatívy, dôsledky*
    *Uloží do projects/opencode-chat/decisions/bedrock-vs-openai.md*
 ```
@@ -763,7 +763,7 @@ Našiel som 3 poznámky:
 ### 1. **Buď špecifický**
 
 ❌ "Vytvor poznámku"  
-✅ "Vytvor projektovú poznámku podľa templates/project.md pre projekt 'e-shop' s tagmi #status/active #priority/high"
+✅ "Vytvor projektovú poznámku podľa x-ai-templates/project.md pre projekt 'e-shop' s tagmi #status/active #priority/high"
 
 ---
 
@@ -845,7 +845,7 @@ AI si pamätá predchádzajúce správy v session:
 
 **Riešenie:**
 - Explicitne špecifikuj: "Použi presne tag #status/done"
-- Alebo aktualizuj `system/opencode-rules.md` s presným zoznamom povolených tagov
+- Alebo aktualizuj `x-ai-rules/opencode-rules.md` s presným zoznamom povolených tagov
 
 ---
 
@@ -908,7 +908,7 @@ rm -rf ~/.local/share/opencode/sessions/*
 
 ### Môžem upraviť šablóny?
 
-Áno! Šablóny v `templates/` sú plne editovateľné.
+Áno! Šablóny v `x-ai-templates/` sú plne editovateľné.
 
 Tip: Použi **Templater plugin** pre pokročilé šablóny s JavaScript logikou.
 
@@ -926,7 +926,7 @@ AI vytvorí markdown súbor s celou konverzáciou.
 
 ### Môžem používať iné jazyky okrem slovenčiny?
 
-Áno. Aktualizuj `system/opencode-rules.md`:
+Áno. Aktualizuj `x-ai-rules/opencode-rules.md`:
 
 ```markdown
 ### Štýl písania

@@ -122,13 +122,13 @@ While the agent is working:
 
 ## System rules setup
 
-System rules define how the AI agent should work with your vault. The plugin automatically loads all `.md` files from the folder set in **Rules path** (default: `system/`) and sends them as context at the start of every new session.
+System rules define how the AI agent should work with your vault. The plugin automatically loads all `.md` files from the folder set in **Rules path** (default: `x-ai-rules/`) and sends them as context at the start of every new session.
 
-### Auto-generated `system/opencode-chat-settings.md`
+### Auto-generated `x-ai-rules/opencode-chat-settings.md`
 
-On every load and whenever settings change (Projects folder, Export folder, Rules path), the plugin automatically writes `system/opencode-chat-settings.md` with the current values. The agent reads this file as part of its rules, so it always knows where to find your projects and exports. **Do not edit it manually** — it will be overwritten on the next plugin load.
+On every load and whenever settings change (Projects folder, Export folder, Rules path), the plugin automatically writes `x-ai-rules/opencode-chat-settings.md` with the current values. The agent reads this file as part of its rules, so it always knows where to find your projects and exports. **Do not edit it manually** — it will be overwritten on the next plugin load.
 
-### `system/opencode-rules.md`
+### `x-ai-rules/opencode-rules.md`
 
 Create this file to add your own vault rules. Example:
 
@@ -150,6 +150,7 @@ Create this file to add your own vault rules. Example:
 ---
 
 ## Recommended Obsidian plugins
+but not required for opencode-chat functionality
 
 ### Templater
 
@@ -158,7 +159,7 @@ Advanced templates with JavaScript, variables, and functions.
 **Install:** Settings → Community plugins → Browse → search "Templater" → Install → Enable
 
 **Configuration:**
-- Settings → Templater → Template folder: `templates`
+- Settings → Templater → Template folder: `x-ai-templates`
 - Enable "Trigger Templater on new file creation"
 
 ---
@@ -208,7 +209,7 @@ Create a note with frontmatter `kanban-plugin: basic`. OpenCode can generate Kan
 ### 1. Creating projects
 
 ```
-You: Create a new project "mobile app" using the template templates/project.md
+You: Create a new project "mobile app" using the template x-ai-templates/project.md
 
 AI: *Loads template, fills in title, date, project-name*
     *Creates: projects/mobile-app/overview.md*
@@ -275,7 +276,7 @@ AI: *Loads the full session history*
 
 ### 1. Use a system prompt at the start of each session
 
-With Rules path set to `system/`, the agent rules are loaded automatically at the start of every new session — no manual prompting needed.
+With Rules path set to `x-ai-rules/`, the agent rules are loaded automatically at the start of every new session — no manual prompting needed.
 
 ---
 
@@ -291,7 +292,7 @@ Switch models via the dropdown in the plugin toolbar.
 ### 3. Be specific in your requests
 
 **Bad:** "Create a note"
-**Good:** "Create a project note using templates/project.md for project 'e-shop' with tags #status/active #priority/high"
+**Good:** "Create a project note using x-ai-templates/project.md for project 'e-shop' with tags #status/active #priority/high"
 
 ---
 
@@ -397,7 +398,7 @@ Or: "If it exists, update it; otherwise create it"
 ### Inconsistent tagging
 
 Explicitly specify: "Use exactly the tag #status/done"
-Or update `system/opencode-rules.md` with the exact list of allowed tags.
+Or update `x-ai-rules/opencode-rules.md` with the exact list of allowed tags.
 
 ### Wrong file paths
 
@@ -447,7 +448,7 @@ You: Export this session to conversations/2026-03-01-chat.md
 
 ### Can I use a language other than English?
 
-Yes. Update `system/opencode-rules.md`:
+Yes. Update `x-ai-rules/opencode-rules.md`:
 
 ```markdown
 ### Writing style

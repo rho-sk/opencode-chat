@@ -33,7 +33,7 @@ const DEFAULT_SETTINGS: OpenCodeSettings = {
 	serverUrl: 'http://localhost:4096',
 	defaultModel: '',
 	defaultAgent: 'build',
-	rulesPath: 'system',
+	rulesPath: 'x-ai-rules',
 	sendKey: 'ctrl+enter',
 	exportFolder: 'conversations',
 	projectsFolder: 'projects',
@@ -910,17 +910,17 @@ class OpenCodeChatView extends ItemView {
 		if (type === 'session.idle') {
 			const sid = p.sessionID;
 			if (sid) {
-				this.setBusy(false, sid);
-				// Log conversation for ALL sessions (visible or background)
-				void this._autoLogConversation(sid);
 				if (sid === this.sessionId) {
-					void this._finalizeStream();
+					void this._finalizeStream(); // calls setBusy(false) internally
 					if (this._onIdleCallback) {
 						const cb = this._onIdleCallback;
 						this._onIdleCallback = null;
 						cb();
 					}
 				}
+				this.setBusy(false, sid);
+				// Log conversation for ALL sessions (visible or background)
+				void this._autoLogConversation(sid);
 			}
 			return;
 		}
@@ -940,8 +940,13 @@ class OpenCodeChatView extends ItemView {
 		if (type === 'session.status') {
 			const sid = p.sessionID;
 			if (sid && p.status?.type === 'idle') {
-				this.setBusy(false, sid);
-				if (sid === this.sessionId && this._busy) void this._finalizeStream();
+				if (sid === this.sessionId) {
+					// Fallback for visible session: only finalize if session.idle never arrived
+					// (_busy is still true means _finalizeStream hasn't run yet)
+					if (this._busy) void this._finalizeStream();
+				} else {
+					this.setBusy(false, sid);
+				}
 			}
 			return;
 		}
@@ -2305,7 +2310,7 @@ class OpenCodeSettingTab extends PluginSettingTab {
 			.setName('Rules path')
 			.setDesc('Vault path to a rules file (.md) or folder with .md files. Content is sent as the first prompt in every new session. Leave empty to disable.')
 			.addText(t => t
-				.setPlaceholder('system/opencode-rules.md')
+				.setPlaceholder('x-ai-rules/opencode-rules.md')
 				.setValue(this.plugin.settings.rulesPath)
 				.onChange(async v => { this.plugin.settings.rulesPath = v.trim(); await this.plugin.saveSettings(); }));
 
