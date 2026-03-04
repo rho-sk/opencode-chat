@@ -1,6 +1,6 @@
 ---
 created: '2026-03-01'
-updated: '2026-03-03'
+updated: '2026-03-04'
 tags:
   - type/reference
   - project/opencode-chat
@@ -146,6 +146,30 @@ Create this file to add your own vault rules. Example:
 - Max 5–7 tags per note
 - Always include a #type/ and #status/ tag
 ```
+
+### Project-level rules
+
+In addition to the global rules, you can define **rules specific to a project**. The plugin looks for a folder (or file) with the same name as the global **Rules path** setting inside the project folder.
+
+**Example:**
+- Global rules path setting: `x-ai-rules`
+- Project folder: `projects/my-project`
+- Project-level rules path: `projects/my-project/x-ai-rules/` ← loaded automatically
+
+Both global and project-level rules are combined and sent together at the start of a new session and also when you press **Assign session to project**.
+
+**When are project-level rules loaded?**
+
+| Trigger | Global rules | Project-level rules |
+|---|---|---|
+| New session (project selected) | ✅ | ✅ |
+| New session (no project) | ✅ | – |
+| Assign session to project | ✅ | ✅ |
+
+**Use cases:**
+- Per-project naming conventions or tag schemas
+- Custom workflow instructions for a specific project
+- Project-specific context the agent should always have (e.g. tech stack, team conventions)
 
 ---
 
@@ -467,4 +491,4 @@ Yes. Update `x-ai-rules/opencode-rules.md`:
 
 **Version:** 2.0
 **Date:** 2026-03-04
-**Plugin version:** 1.3.42
+**Plugin version:** 1.3.44

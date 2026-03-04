@@ -440,6 +440,30 @@ AI si prečíta pravidlá a bude ich aplikovať počas celej session.
 **System prompt:** Prečítaj `x-ai-rules/opencode-rules.md` a dodržuj pravidlá.
 ```
 
+### Projektové rules (project-level rules)
+
+Okrem globálnych rules môžeš definovať **rules špecifické pre projekt**. Plugin hľadá priečinok (alebo súbor) s rovnakým názvom ako nastavenie **Rules path** priamo v priečinku projektu.
+
+**Príklad:**
+- Nastavenie Rules path: `x-ai-rules`
+- Priečinok projektu: `projects/moj-projekt`
+- Projektové rules: `projects/moj-projekt/x-ai-rules/` ← plugin načíta automaticky
+
+Globálne aj projektové rules sa skombinujú a odošlú spolu na začiatku každej novej session a tiež pri stlačení **Assign session to project**.
+
+**Kedy sa projektové rules načítajú?**
+
+| Spúšťač | Globálne rules | Projektové rules |
+|---|---|---|
+| Nová session (projekt vybraný) | ✅ | ✅ |
+| Nová session (bez projektu) | ✅ | – |
+| Assign session to project | ✅ | ✅ |
+
+**Príklady použitia:**
+- Konvencie pomenovania alebo schéma tagov špecifická pre projekt
+- Vlastné workflow inštrukcie pre konkrétny projekt
+- Kontext, ktorý má agent vždy k dispozícii (napr. tech stack, tímové konvencie)
+
 ---
 
 ## Workflow scenáre
@@ -953,4 +977,4 @@ OpenCode nepobehá limit na sessions. História zobrazuje posledných 20.
 
 **Verzia:** 2.0
 **Dátum:** 2026-03-04
-**Plugin verzia:** 1.3.42
+**Plugin verzia:** 1.3.44
