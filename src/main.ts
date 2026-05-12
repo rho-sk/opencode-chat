@@ -856,35 +856,31 @@ class OpenCodeChatView extends ItemView {
 		this._stopSSE();
 		this._sseAbort = new AbortController();
 		const signal = this._sseAbort.signal;
-		const url = `${this.plugin.settings.serverUrl}/event`;
 
 		// fetch is required here: requestUrl does not support ReadableStream / SSE streaming
 		void (async () => {
+			// opencode >= 1.14 uses /global/event; older versions use /event
+			const base = this.plugin.settings.serverUrl;
+			let url = `${base}/global/event`;
 			try {
-				const res = await fetch(url, {
-					headers: { Accept: 'text/event-stream' },
-					signal,
-				});
-				if (!res.ok || !res.body) return;
-				const reader = res.body.getReader();
-				const dec = new TextDecoder();
-				let buf = '';
-
-				while (true) {
-					const { done, value } = await reader.read();
-					if (done || signal.aborted) break;
-					buf += dec.decode(value, { stream: true });
-					const lines = buf.split('\n');
-					buf = lines.pop() ?? '';
-					for (const line of lines) {
-						if (line.startsWith('data: ')) {
-							try {
-								const evt = JSON.parse(line.slice(6)) as SSEEvent;
-								this._handleSSEEvent(evt);
-							} catch { /* ignore parse errors */ }
-						}
-					}
+				const probe = await fetch(url, { headers: { Accept: 'text/event-stream' }, signal });
+				if (!probe.ok || !probe.headers.get('content-type')?.includes('text/event-stream')) {
+					probe.body?.cancel();
+					url = `${base}/event`;
+				} else {
+					// reuse the already-open response body
+					await this._readSSEStream(probe, signal);
+					return;
 				}
+			} catch (e) {
+				if ((e as Error).name === 'AbortError' || signal.aborted) return;
+				url = `${base}/event`;
+			}
+
+			try {
+				const res = await fetch(url, { headers: { Accept: 'text/event-stream' }, signal });
+				if (!res.ok || !res.body) return;
+				await this._readSSEStream(res, signal);
 			} catch (e) {
 				if (!(e as Error).message?.includes('aborted') && !signal.aborted) {
 					console.warn('OpenCode Chat: SSE disconnected, reconnecting in 3s', e);
@@ -898,6 +894,33 @@ class OpenCodeChatView extends ItemView {
 				}
 			}
 		})();
+	}
+
+	private async _readSSEStream(res: Response, signal: AbortSignal): Promise<void> {
+		if (!res.body) return;
+		const reader = res.body.getReader();
+		const dec = new TextDecoder();
+		let buf = '';
+		try {
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done || signal.aborted) break;
+				buf += dec.decode(value, { stream: true });
+				const lines = buf.split('\n');
+				buf = lines.pop() ?? '';
+				for (const line of lines) {
+					if (line.startsWith('data: ')) {
+						try {
+							const parsed = JSON.parse(line.slice(6));
+							const evt = (parsed.payload ?? parsed) as SSEEvent;
+							this._handleSSEEvent(evt);
+						} catch { /* ignore parse errors */ }
+					}
+				}
+			}
+		} finally {
+			reader.releaseLock();
+		}
 	}
 
 	private _handleSSEEvent(evt: SSEEvent) {
