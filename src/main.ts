@@ -568,7 +568,7 @@ class OpenCodeChatView extends ItemView {
 					const latest = noProjectSessions.reduce((a, b) =>
 						(b.time?.updated || 0) > (a.time?.updated || 0) ? b : a
 					);
-					await this.loadSession(latest.id, latest.title || latest.slug);
+					await this.loadSession(latest.id, latest.title || latest.slug, null);
 					return;
 				}
 			} catch { /* fall through */ }
@@ -581,21 +581,20 @@ class OpenCodeChatView extends ItemView {
 
 		// Load last session of this project, or show message if none exists
 		const projectPath = `${this.plugin.settings.projectsFolder}/${projectName}`;
-		const parentId = data.projectSessions[projectPath];
+		// getOrCreateProjectSession validates the stored parentId and recreates if stale
+		const parentId = await this.plugin.getOrCreateProjectSession(projectName, projectPath);
 
-		if (parentId) {
-			try {
-				const allSessions = await apiGet(this.plugin.settings.serverUrl, '/session') as SessionInfo[];
-				const projectSessions = allSessions.filter(s => s.parentID === parentId);
-				if (projectSessions.length > 0) {
-					const latest = projectSessions.reduce((a, b) =>
-						(b.time?.updated || 0) > (a.time?.updated || 0) ? b : a
-					);
-					await this.loadSession(latest.id, latest.title || latest.slug);
-					return;
-				}
-			} catch { /* fall through */ }
-		}
+		try {
+			// Use /children endpoint — direct server-side filter, no need to fetch all sessions
+			const projectSessions = await apiGet(this.plugin.settings.serverUrl, `/session/${parentId}/children`) as SessionInfo[];
+			if (projectSessions.length > 0) {
+				const latest = projectSessions.reduce((a, b) =>
+					(b.time?.updated || 0) > (a.time?.updated || 0) ? b : a
+				);
+				await this.loadSession(latest.id, latest.title || latest.slug, projectName);
+				return;
+			}
+		} catch { /* fall through */ }
 
 		// Project has no sessions — show info, do NOT auto-create
 		this.sessionLabel.setText(`${projectName} / no session`);
@@ -1059,25 +1058,31 @@ class OpenCodeChatView extends ItemView {
 					try {
 						const data = await this.plugin.loadPluginData();
 						const activeProject = data.activeProject;
-						const allSessions = await apiGet(this.plugin.settings.serverUrl, '/session') as SessionInfo[];
 						if (activeProject) {
 							const projectPath = `${this.plugin.settings.projectsFolder}/${activeProject}`;
 							const parentId = data.projectSessions[projectPath];
-							const projectSessions = parentId ? allSessions.filter(s => s.parentID === parentId) : [];
-							if (projectSessions.length > 0) {
-								const latest = projectSessions.reduce((a, b) =>
-									(b.time?.updated || 0) > (a.time?.updated || 0) ? b : a);
-								await this.loadSession(latest.id, latest.title || latest.slug);
-							} else {
-								this.sessionLabel.setText(`${activeProject} / no session`);
-								this.appendSystemMsg(`Project "${activeProject}" has no sessions yet. Press + to create a new one.`);
+							if (parentId) {
+								try {
+									const projectSessions = await apiGet(this.plugin.settings.serverUrl, `/session/${parentId}/children`) as SessionInfo[];
+									if (projectSessions.length > 0) {
+										const latest = projectSessions.reduce((a, b) =>
+											(b.time?.updated || 0) > (a.time?.updated || 0) ? b : a);
+										await this.loadSession(latest.id, latest.title || latest.slug, activeProject);
+										return;
+									}
+								} catch { /* fall through */ }
 							}
-						} else if (allSessions && allSessions.length > 0) {
-							const latest = allSessions.reduce((a, b) =>
-								(b.time?.updated || 0) > (a.time?.updated || 0) ? b : a);
-							await this.loadSession(latest.id, latest.title || latest.slug);
+							this.sessionLabel.setText(`${activeProject} / no session`);
+							this.appendSystemMsg(`Project "${activeProject}" has no sessions yet. Press + to create a new one.`);
 						} else {
-							this.appendSystemMsg('No sessions. Press + to create a new one.');
+							const allSessions = await apiGet(this.plugin.settings.serverUrl, '/session') as SessionInfo[];
+							if (allSessions && allSessions.length > 0) {
+								const latest = allSessions.reduce((a, b) =>
+									(b.time?.updated || 0) > (a.time?.updated || 0) ? b : a);
+								await this.loadSession(latest.id, latest.title || latest.slug, null);
+							} else {
+								this.appendSystemMsg('No sessions. Press + to create a new one.');
+							}
 						}
 					} catch {
 						this.appendSystemMsg('No sessions. Press + to create a new one.');
@@ -1676,32 +1681,35 @@ class OpenCodeChatView extends ItemView {
 					try {
 						const data = await this.plugin.loadPluginData();
 						const activeProject = data.activeProject;
-						const allSessions = await apiGet(this.plugin.settings.serverUrl, '/session') as SessionInfo[];
 
 						if (activeProject) {
 							// Stay in project context — find another session in this project
 							const projectPath = `${this.plugin.settings.projectsFolder}/${activeProject}`;
 							const parentId = data.projectSessions[projectPath];
-							const projectSessions = parentId
-								? allSessions.filter(s => s.parentID === parentId)
-								: [];
-							if (projectSessions.length > 0) {
-								const latest = projectSessions.reduce((a, b) =>
+							if (parentId) {
+								try {
+									const projectSessions = await apiGet(this.plugin.settings.serverUrl, `/session/${parentId}/children`) as SessionInfo[];
+									if (projectSessions.length > 0) {
+										const latest = projectSessions.reduce((a, b) =>
+											(b.time?.updated || 0) > (a.time?.updated || 0) ? b : a
+										);
+										await this.loadSession(latest.id, latest.title || latest.slug, activeProject);
+										return;
+									}
+								} catch { /* fall through */ }
+							}
+							this.sessionLabel.setText(`${activeProject} / no session`);
+							this.appendSystemMsg(`Project "${activeProject}" has no sessions yet. Press + to create a new one.`);
+						} else {
+							const allSessions = await apiGet(this.plugin.settings.serverUrl, '/session') as SessionInfo[];
+							if (allSessions && allSessions.length > 0) {
+								const latest = allSessions.reduce((a, b) =>
 									(b.time?.updated || 0) > (a.time?.updated || 0) ? b : a
 								);
-								await this.loadSession(latest.id, latest.title || latest.slug);
+								await this.loadSession(latest.id, latest.title || latest.slug, null);
 							} else {
-								// No more sessions in project — show "no sessions yet" message
-								this.sessionLabel.setText(`${activeProject} / no session`);
-								this.appendSystemMsg(`Project "${activeProject}" has no sessions yet. Press + to create a new one.`);
+								this.appendSystemMsg('No sessions. Press + to create a new one.');
 							}
-						} else if (allSessions && allSessions.length > 0) {
-							const latest = allSessions.reduce((a, b) =>
-								(b.time?.updated || 0) > (a.time?.updated || 0) ? b : a
-							);
-							await this.loadSession(latest.id, latest.title || latest.slug);
-						} else {
-							this.appendSystemMsg('No sessions. Press + to create a new one.');
 						}
 					} catch {
 						this.appendSystemMsg('No sessions. Press + to create a new one.');
@@ -1815,7 +1823,9 @@ class OpenCodeChatView extends ItemView {
 		}
 	}
 
-	async loadSession(id: string, slug: string) {
+	// knownProject: pass when the caller already knows the project context so we skip
+	// the server round-trip and avoid clobbering the dropdown with stale data.
+	async loadSession(id: string, slug: string, knownProject?: string | null) {
 		this._stopSSE();
 
 		// Reset UI only if the outgoing session was actually busy
@@ -1840,21 +1850,32 @@ class OpenCodeChatView extends ItemView {
 			this.appendSystemMsg('Session is running…');
 		}
 
-		// If this session belongs to a project, update the dropdown to reflect it
-		try {
-			const data = await this.plugin.loadPluginData();
-			const sessionInfo = await apiGet(this.plugin.settings.serverUrl, `/session/${id}`) as SessionInfo;
-			const parentId = sessionInfo.parentID;
-			if (parentId) {
-				const projectEntry = Object.entries(data.projectSessions).find(([, pid]) => pid === parentId);
-				if (projectEntry) {
-					const projectName = projectEntry[0].split('/').pop()!;
-					// Update dropdown without triggering _onProjectChange
-					this.projectSelect.value = projectName;
-					this.projectSelect.toggleClass('opencode-project-select-active', true);
-					data.activeProject = projectName;
-					await this.plugin.savePluginData(data);
-					this.sessionLabel.setText(`${projectName} / ${slug}`);
+		if (knownProject !== undefined) {
+			// Caller already set the correct project context — just update the label
+			const label = knownProject ? `${knownProject} / ${slug}` : `Session: ${slug}`;
+			this.sessionLabel.setText(label);
+		} else {
+			// Auto-detect project from session parentID
+			try {
+				const data = await this.plugin.loadPluginData();
+				const sessionInfo = await apiGet(this.plugin.settings.serverUrl, `/session/${id}`) as SessionInfo;
+				const parentId = sessionInfo.parentID;
+				if (parentId) {
+					const projectEntry = Object.entries(data.projectSessions).find(([, pid]) => pid === parentId);
+					if (projectEntry) {
+						const projectName = projectEntry[0].split('/').pop()!;
+						this.projectSelect.value = projectName;
+						this.projectSelect.toggleClass('opencode-project-select-active', true);
+						data.activeProject = projectName;
+						await this.plugin.savePluginData(data);
+						this.sessionLabel.setText(`${projectName} / ${slug}`);
+					} else {
+						this.projectSelect.value = '';
+						this.projectSelect.toggleClass('opencode-project-select-active', false);
+						data.activeProject = null;
+						await this.plugin.savePluginData(data);
+						this.sessionLabel.setText(`Session: ${slug}`);
+					}
 				} else {
 					this.projectSelect.value = '';
 					this.projectSelect.toggleClass('opencode-project-select-active', false);
@@ -1862,19 +1883,11 @@ class OpenCodeChatView extends ItemView {
 					await this.plugin.savePluginData(data);
 					this.sessionLabel.setText(`Session: ${slug}`);
 				}
-			} else {
-				// Session has no parent — clear project dropdown
-				this.projectSelect.value = '';
-				this.projectSelect.toggleClass('opencode-project-select-active', false);
-				data.activeProject = null;
-				await this.plugin.savePluginData(data);
-				this.sessionLabel.setText(`Session: ${slug}`);
+			} catch {
+				const val = this.projectSelect?.value;
+				const projectName = val && val !== '' ? val : null;
+				this.sessionLabel.setText(projectName ? `${projectName} / ${slug}` : `Session: ${slug}`);
 			}
-		} catch {
-			// Fallback: just use current dropdown state
-			const val = this.projectSelect?.value;
-			const projectName = val && val !== '' ? val : null;
-			this.sessionLabel.setText(projectName ? `${projectName} / ${slug}` : `Session: ${slug}`);
 		}
 
 		try {
@@ -2498,7 +2511,16 @@ export default class OpenCodeChatPlugin extends Plugin {
 
 	async getOrCreateProjectSession(projectName: string, projectPath: string): Promise<string> {
 		const data = await this.loadPluginData();
-		if (data.projectSessions[projectPath]) return data.projectSessions[projectPath];
+		const storedId = data.projectSessions[projectPath];
+		if (storedId) {
+			try {
+				await apiGet(this.settings.serverUrl, `/session/${storedId}`);
+				return storedId;
+			} catch {
+				// stale — parent session deleted on server, recreate
+				delete data.projectSessions[projectPath];
+			}
+		}
 		const session = await apiPost(this.settings.serverUrl, '/session', { title: projectName }) as { id: string };
 		data.projectSessions[projectPath] = session.id;
 		await this.savePluginData(data);
